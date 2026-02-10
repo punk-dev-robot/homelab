@@ -1,0 +1,14 @@
+# DEPLOYED VIA JINJA2 TEMPLATE: templates/config/crowdsec/parsers/s02-enrich/custom-admin-whitelist.yaml.j2
+# Admin IPs sourced from 1Password at deploy time (ADMIN_IP_CONFIG item)
+name: custom/admin-whitelist
+description: "Admin and trusted IP addresses - NEVER block these"
+filter: "1 == 1"
+whitelist:
+  reason: "Admin/trusted IP - DO NOT BLOCK"
+  ip:
+    - "{{ crowdsec_config.admin_ip }}"
+    - "{{ crowdsec_config.admin_secondary_ip }}"
+  cidr:
+    - "10.100.0.0/16" # Pangolin tunnel network
+    - "172.16.0.0/12" # Docker internal networks
+    - "{{ crowdsec_config.admin_isp_cidr }}"

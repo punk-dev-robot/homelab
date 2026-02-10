@@ -1,0 +1,12 @@
+services:
+  nzbget:
+    extends:
+      file: ../common.yml
+      service: base
+    image: linuxserver/nzbget:latest
+    container_name: nzbget
+    ports:
+      - 6789:6789
+    volumes:
+      - ${DATA_DIR}/usenet:/data/usenet
+      - $APP_DATA/nzbget:/config

@@ -1,0 +1,38 @@
+services:
+  jellystat-db:
+    extends:
+      file: ../common.yml
+      service: base
+    image: postgres:15.2
+    shm_size: "1gb"
+    container_name: jellystat-db
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: ${JELLYSTAT_DB_PASS}
+    volumes:
+      - jellystat-data:/var/lib/postgresql/data
+
+  jellystat:
+    image: cyfershepard/jellystat:latest
+    container_name: jellystat
+    extends:
+      file: ../common.yml
+      service: base
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: ${JELLYSTAT_DB_PASS}
+      POSTGRES_IP: jellystat-db
+      POSTGRES_PORT: 5432
+      JWT_SECRET: ${JELLYSTAT_JWT_SECRET}
+    volumes:
+      - jellystat-backup-data:/app/backend/backup-data
+    ports:
+      - "3000:3000"
+    depends_on:
+      - jellystat-db
+
+volumes:
+  jellystat-data:
+    name: jellystat-data
+  jellystat-backup-data:
+    name: jellystat-backup-data

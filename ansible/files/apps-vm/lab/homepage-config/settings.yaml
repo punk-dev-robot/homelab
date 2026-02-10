@@ -1,0 +1,71 @@
+---
+title: My Awesome Homepage
+description: desc
+# startUrl: /
+# background: https://images.unsplash.com/photo-1502790671504-542ad42d5189?auto=format&fit=crop&w=2560&q=80
+# or
+# volumes:
+#  - /my/homepage/images:/app/public/images
+#  background: /images/background.png
+#
+# theme: dark # or light
+# color: slate
+
+# For configuration options and examples, please see:
+# https://gethomepage.dev/configs/settings/
+
+providers:
+  openweathermap: openweathermapapikey
+  weatherapi: weatherapiapikey
+
+layout:
+  Proxmox:
+    style: row
+    columns: 4
+
+  # Media:
+  #   iconsOnly: true
+
+  Group A:
+    header: false
+    style: row
+    columns: 4
+  Group C:
+    style: row
+    columns: 2
+    Nested Group A:
+      header: false
+      style: row
+      columns: 2
+    Nested Group B:
+      style: row
+      columns: 2
+
+  # category icons
+  Home Management & Info:
+    icon: home-assistant.png
+  Server Tools:
+    icon: https://cdn-icons-png.flaticon.com/512/252/252035.png
+  # tabs
+  Bookmark Group on First Tab:
+    tab: First
+
+  First Service Group:
+    tab: First
+    style: row
+    columns: 4
+
+  Second Service Group:
+    tab: Second
+    columns: 4
+
+  Third Service Group:
+    tab: Third
+    style: row
+
+  Bookmark Group on Fourth Tab:
+    tab: Fourth
+
+  Service Group on every Tab:
+    style: row
+    columns: 4

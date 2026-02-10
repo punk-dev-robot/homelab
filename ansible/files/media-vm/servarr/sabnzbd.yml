@@ -1,0 +1,12 @@
+services:
+  sabnzbd:
+    extends:
+      file: ../common.yml
+      service: base
+    image: linuxserver/sabnzbd:latest
+    container_name: sabnzbd
+    ports:
+      - 8084:8080
+    volumes:
+      - ${DATA_DIR}/usenet:/data/usenet
+      - ${APP_DATA}/sabnzbd:/config

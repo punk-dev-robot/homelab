@@ -1,0 +1,12 @@
+# Ansible-lint configuration
+---
+exclude_paths:
+  - files/
+  - .ai/
+  - pve-cluster/
+  - proxmox_gpu_passthrough.yml
+
+# Skip certain rules that are too strict for our setup
+skip_list:
+  - schema[requirements]  # Requirements file format is correct
+  - fqcn  # FQCN requirements are too verbose for our setup

@@ -1,0 +1,15 @@
+services:
+  gotify:
+    extends:
+      file: ../common.yml
+      service: base
+    image: gotify/server
+    container_name: gotify
+    volumes:
+      - gotify-data:/app/data
+    ports:
+      - 80:80
+
+volumes:
+  gotify-data:
+    name: gotify-data

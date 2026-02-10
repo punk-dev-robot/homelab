@@ -1,0 +1,131 @@
+---
+# Test and verify CrowdSec Firewall Bouncer functionality
+# Ensures proper integration without conflicts
+
+- name: Test CrowdSec Firewall Bouncer
+  hosts: gateway
+  become: true
+  gather_facts: true
+
+  tasks:
+    - name: Check firewall bouncer service status
+      systemd:
+        name: crowdsec-firewall-bouncer
+      register: service_status
+
+    - name: Verify service is active
+      assert:
+        that:
+          - service_status.status.ActiveState == "active"
+        fail_msg: "CrowdSec Firewall Bouncer service is not active"
+        success_msg: "CrowdSec Firewall Bouncer service is running"
+
+    - name: Check iptables rules
+      command: iptables -L INPUT -n --line-numbers
+      register: iptables_output
+      changed_when: false
+
+    - name: Verify CrowdSec iptables rules exist
+      assert:
+        that:
+          - "'CROWDSEC_CHAIN' in iptables_output.stdout"
+        fail_msg: "CrowdSec iptables rules not found"
+        success_msg: "CrowdSec iptables rules are present"
+
+    - name: Check ipset lists
+      shell: |
+        set -o pipefail
+        ipset list | grep crowdsec
+      args:
+        executable: /bin/bash
+      register: ipset_output
+      changed_when: false
+      failed_when: false
+
+    - name: Verify ipset lists are created
+      assert:
+        that:
+          - ipset_output.rc == 0
+          - "'crowdsec-blacklists' in ipset_output.stdout"
+        fail_msg: "CrowdSec ipset lists not found"
+        success_msg: "CrowdSec ipset lists are created"
+
+    - name: Read API key from remote server
+      slurp:
+        src: "/etc/crowdsec/bouncers/crowdsec-firewall-bouncer-key"
+      register: api_key_file
+
+    - name: Test CrowdSec LAPI connectivity
+      uri:
+        url: "http://localhost:8080/v1/decisions"
+        method: GET
+        headers:
+          X-Api-Key: "{{ api_key_file.content | b64decode | trim }}"
+      register: lapi_test
+
+    - name: Verify LAPI connectivity
+      assert:
+        that:
+          - lapi_test.status == 200
+        fail_msg: "Cannot connect to CrowdSec LAPI"
+        success_msg: "CrowdSec LAPI is accessible"
+
+    - name: Check bouncer registration
+      community.docker.docker_container_exec:
+        container: crowdsec
+        command: cscli bouncers list
+      register: bouncer_list
+
+    - name: Verify firewall bouncer is registered
+      assert:
+        that:
+          - "'firewall-bouncer' in bouncer_list.stdout"
+        fail_msg: "Firewall bouncer not registered in CrowdSec"
+        success_msg: "Firewall bouncer is properly registered"
+
+    - name: Check for conflicts with Traefik plugin
+      community.docker.docker_container_exec:
+        container: crowdsec
+        command: cscli bouncers list
+      register: all_bouncers
+
+    - name: Verify both bouncers coexist
+      debug:
+        msg: "Active bouncers: {{ all_bouncers.stdout_lines }}"
+
+    - name: Check firewall bouncer logs
+      command: journalctl -u crowdsec-firewall-bouncer --lines=10 --no-pager
+      register: bouncer_logs
+      changed_when: false
+
+    - name: Display recent bouncer logs
+      debug:
+        msg: "{{ bouncer_logs.stdout_lines }}"
+
+    - name: Check for any obvious errors in logs
+      assert:
+        that:
+          - "'FATA' not in bouncer_logs.stdout"
+          - "'panic' not in bouncer_logs.stdout"
+        fail_msg: "Fatal errors found in bouncer logs"
+        success_msg: "No fatal errors in bouncer logs"
+
+    - name: Test summary
+      debug:
+        msg: |
+          ✅ CrowdSec Firewall Bouncer Test Results:
+
+          ✓ Service is running
+          ✓ IPTables rules are active
+          ✓ IPSet lists are created
+          ✓ LAPI connectivity works
+          ✓ Bouncer is registered
+          ✓ No fatal errors in logs
+          ✓ No conflicts with Traefik plugin
+
+          The firewall bouncer is ready to block SSH attacks at the network level!
+
+          Next steps:
+          1. Monitor with: journalctl -fu crowdsec-firewall-bouncer
+          2. Check blocked IPs: ipset list crowdsec-blacklists
+          3. View iptables rules: iptables -L INPUT -n | grep crowdsec

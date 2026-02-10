@@ -1,0 +1,78 @@
+---
+# Pangolin Role Default Variables
+# Minimal examples - override with customer-specific configuration
+
+# Pangolin API Configuration - REQUIRED
+pangolin_api_base: "https://api.nobasura.org"  # Override for different environments
+pangolin_organization_id: "change-me"          # Set to your organization slug
+pangolin_root_key: "change-me"  # Override with API key or use lookup in playbook
+
+# Organization Configuration - REQUIRED
+pangolin_organization_id_slug: "{{ pangolin_organization_id }}"
+
+# Site Management - MINIMAL EXAMPLES (Override with actual configuration)
+pangolin_homelab_sites:
+  - name: "example-vm"
+    description: "Example virtual machine"
+    internal_domain: "example.local"
+    subnet: "10.100.10.0/24"
+    services:
+      - name: "example-app"
+        internal_ip: "example.local"
+        internal_port: 8080
+        external_domain: "app.example.org"
+        health_check: "/"
+      - name: "example-api"
+        internal_ip: "example.local"
+        internal_port: 3000
+        external_domain: "api.example.org"
+        health_check: "/health"
+
+# Compatibility mapping for site management - MINIMAL EXAMPLES
+pangolin_target_sites:
+  - name: "example-vm"
+    description: "Example virtual machine"
+    domain: "example.local"
+
+# Feature toggles
+pangolin_manage_resources: true
+pangolin_manage_hosts: true
+
+# Client Configuration
+pangolin_newt_enabled: false
+pangolin_newt_image: "fosrl/newt:1.2.1"
+pangolin_newt_network_mode: "host"
+pangolin_credentials_path: "{{ ansible_env.HOME }}/.ansible/pangolin"
+
+# Certificate Management
+pangolin_ssl_enabled: true
+pangolin_cert_email: "admin@example.org"      # Override with your email
+pangolin_cert_provider: "letsencrypt"
+
+# Operation modes
+pangolin_auto_cleanup: true
+pangolin_idempotent_mode: true
+pangolin_backup_configs: true
+
+# Networking defaults
+pangolin_tunnel_subnet: "100.89.137.0/20"
+pangolin_listen_port: 51820
+
+# Monitoring defaults
+pangolin_health_checks: true
+pangolin_metrics_enabled: true
+
+# Host entries configuration for service resolution
+pangolin_hosts_entries:
+  - ip: "10.10.10.51"
+    hostnames: ["apps.lan"]
+    comment: "Apps VM - Application services"
+  - ip: "10.10.10.20"
+    hostnames: ["media.lan"]
+    comment: "Media VM - Media services"
+  - ip: "10.10.10.10"
+    hostnames: ["obs.lan"]
+    comment: "Obs VM - Monitoring services"
+  - ip: "127.0.0.1"
+    hostnames: ["midman"]
+    comment: "Gateway VPS - Infrastructure management"

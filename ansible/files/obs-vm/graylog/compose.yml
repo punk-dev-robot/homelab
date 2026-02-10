@@ -1,0 +1,65 @@
+include:
+  - mongodb.yml
+  - datanode.yml
+
+services:
+  graylog:
+    image: graylog/graylog-enterprise:6.1
+    container_name: graylog
+    extends:
+      file: common.yml
+      service: graylog-base
+    hostname: server
+    entrypoint: /usr/bin/tini -- /docker-entrypoint.sh
+    depends_on:
+      graylog-mongodb:
+        condition: service_started
+      graylog-datanode:
+        condition: service_started
+    volumes:
+      - graylog-data:/usr/share/graylog/data
+    environment:
+      GRAYLOG_NODE_ID_FILE: /usr/share/graylog/data/config/node-id
+      GRAYLOG_HTTP_BIND_ADDRESS: 0.0.0.0:9000
+      GRAYLOG_MONGODB_URI: mongodb://graylog-mongodb:27017/graylog
+      GRAYLOG_REPORT_DISABLE_SANDBOX: true
+      GRAYLOG_PASSWORD_SECRET: ${GRAYLOG_PASSWORD_SECRET}
+      GRAYLOG_ROOT_PASSWORD_SHA2: ${GRAYLOG_ROOT_PASSWORD_SHA2}
+      GRAYLOG_HTTP_EXTERNAL_URI: http://127.0.0.1:9000/
+      GRAYLOG_PROMETHEUS_EXPORTER_ENABLED: true
+      GRAYLOG_PROMETHEUS_EXPORTER_BIND_ADDRESS: 0.0.0.0:9833
+    ports:
+      - 9000:9000/tcp # web interface and REST API
+      - 5044:5044/tcp # Beats
+      - 5140:5140/tcp # Syslog TCP
+      - 5140:5140/udp # Syslog UDP
+      - 12201:12201/tcp # GELF TCP
+      - 12201:12201/udp # GELF UDP
+      - 9833:9833 # Prometheus
+      - 13301:13301/tcp
+      - 13302:13302/tcp
+      - 1501:1501/udp # opnsense syslog
+      - 1502:1502/udp # pihole
+      - 1503:1503/udp # proxmox
+      - 1504:1504/udp # qnap
+      - 1505:1505/udp # kbs
+      - 1506:1506/udp # qnap apps (not used)
+      - 1507:1507/udp # infravm
+      - 1508:1508/udp # infra apps (not used)
+      - 1509:1509/udp # zyxel
+      - 1510:1510/udp
+      - 1511:1511/udp
+      - 1512:1512/udp
+      - 1513:1513/udp
+      - 1514:1514/udp # opnsense firewall
+      - 1515:1515/udp
+      - 1516:1516/udp
+
+volumes:
+  graylog-data:
+    name: graylog-data
+
+networks:
+  default:
+    name: obs-shared
+    external: true

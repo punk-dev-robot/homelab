@@ -1,0 +1,149 @@
+---
+# Gateway VPS Test Suite
+# Production-grade test suite for Gateway VPS authentication flows
+# Tests external https://*.nobasura.org services via Traefik + Pangolin
+# Usage:
+#   ansible-playbook test_gateway_vps.yml                      # Full test suite
+#   ansible-playbook test_gateway_vps.yml --tags smoke        # Quick smoke tests
+#   ansible-playbook test_gateway_vps.yml --tags security     # Security only
+#   ansible-playbook test_gateway_vps.yml --tags critical     # Critical tests only
+
+- name: Gateway VPS Test Suite
+  hosts: localhost
+  gather_facts: true
+  connection: local
+  vars:
+    # Production-grade test framework configuration
+    auth_bypass_enabled: true
+
+  pre_tasks:
+    - name: Load auth bypass variables
+      include_vars: "../../roles/pangolin/vars/auth_bypass.yml"
+      tags: ["always"]
+
+    - name: Verify test prerequisites
+      block:
+        - name: Check 1Password CLI availability
+          command: op --version
+          register: op_version
+          changed_when: false
+          failed_when: false
+
+        - name: Verify 1Password authentication
+          command: op item get "TRAEFIK_AUTH_BYPASS_KEY" --vault "Homelab" --fields password
+          register: bypass_key_check
+          changed_when: false
+          failed_when: false
+          no_log: true
+
+        - name: Fail if prerequisites not met
+          fail:
+            msg: |
+              Test prerequisites not met:
+              - 1Password CLI: {{ 'Available' if op_version.rc == 0 else 'Missing' }}
+              - Bypass key access: {{ 'Available' if bypass_key_check.rc == 0 else 'Missing' }}
+
+              Please ensure 1Password CLI is installed and authenticated.
+          when: op_version.rc != 0 or bypass_key_check.rc != 0
+
+    - name: Display test suite information
+      debug:
+        msg: |
+          🧪 INFRASTRUCTURE TEST SUITE
+          ============================
+          Test Categories:
+            • Security Tests (Critical)
+            • Functionality Tests (Critical)
+            • Health Tests (Important)
+
+          Available Tags:
+            • smoke: Quick validation (~30s)
+            • security: Security tests only
+            • functionality: Feature tests only
+            • critical: Critical tests only
+
+          Target Infrastructure:
+            • Auth Bypass Services: {{ pangolin_auth_bypass_services | length }}
+            • Organization Domain: {{ organization_domain }}
+            • Test Coverage: Security + Functionality + Health
+
+  tasks:
+    - name: Initialize test framework
+      include_tasks: ../test_helpers.yml
+      tags: ["always"]
+
+    - name: Security Validation Tests
+      include_tasks: ../security_tests.yml
+      tags: ["security", "critical", "smoke", "always"]
+
+    - name: Functionality Validation Tests
+      include_tasks: ../functionality_tests.yml
+      tags: ["functionality", "critical", "smoke", "always"]
+
+    - name: Health Validation Tests
+      include_tasks: ../authentik_auth_tests.yml
+      tags: ["health", "authentik", "smoke", "always"]
+
+    - name: CrowdSec Bouncer Validation Tests
+      include_tasks: ../crowdsec_bouncer_validation.yml
+      tags: ["crowdsec", "security", "critical", "smoke", "always"]
+
+    - name: Generate final test report
+      include_tasks: ../test_helpers.yml
+      vars:
+        generate_final_report: true
+      tags: ["always"]
+
+  post_tasks:
+    - name: Test completion summary
+      debug:
+        msg: |
+
+          🎯 TEST SUITE COMPLETED
+          =======================
+          {% if test_summary.critical_failures | length == 0 %}
+          ✅ PASS: Infrastructure is safe for deployment
+          {% else %}
+          ❌ FAIL: Critical issues detected - DEPLOYMENT BLOCKED
+          {% endif %}
+
+          Results: {{ test_summary.passed | int }}/{{ test_summary.total | int }} passed
+          Duration: {{ ((ansible_date_time.epoch | int) - (start_time | default(ansible_date_time.epoch) | int)) }}s
+
+          {% if (test_summary.failed | int) > 0 %}
+          Failed Tests: {{ test_summary.failed | int }}
+          {% if test_summary.critical_failures | length > 0 %}
+          Critical Failures: {{ test_summary.critical_failures | join(', ') }}
+          {% endif %}
+          {% endif %}
+
+    - name: Set test exit status
+      set_fact:
+        test_exit_code: "{{ 0 if (test_summary.critical_failures | default([])) | length == 0 else 1 }}"
+
+    - name: Save test results for CI integration
+      copy:
+        content: |
+          {
+            "timestamp": "{{ ansible_date_time.iso8601 }}",
+            "duration_seconds": {{ ((ansible_date_time.epoch | int) - (start_time | default(ansible_date_time.epoch) | int)) }},
+            "summary": {{ test_summary | default({}) | to_json }},
+            "results": {{ test_results | default([]) | to_json }},
+            "exit_code": {{ test_exit_code | default(0) }}
+          }
+        dest: "/tmp/infrastructure_test_results.json"
+        mode: "0644"
+      tags: ["always"]
+
+    - name: Block deployment on critical failures
+      fail:
+        msg: |
+          🚨 CRITICAL INFRASTRUCTURE TEST FAILURES
+
+          Critical tests failed: {{ (test_summary.critical_failures | default([])) | join(', ') }}
+
+          Deployment is BLOCKED for safety. Review test results and fix issues before proceeding.
+
+          Test results saved to: /tmp/infrastructure_test_results.json
+      when: (test_summary.critical_failures | default([])) | length > 0
+      tags: ["always"]

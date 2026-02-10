@@ -1,0 +1,100 @@
+name: pangolin
+services:
+  pangolin:
+    image: fosrl/pangolin:1.12.2
+    container_name: pangolin
+    restart: unless-stopped
+    environment:
+      - RESEND_API_KEY=${RESEND_API_KEY}
+    volumes:
+      - ./config:/app/config
+      - pangolin_db:/app/config/db
+    labels:
+      - "deunhealth.restart.on.unhealthy=true"
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3001/api/v1/"]
+      interval: "10s"
+      timeout: "10s"
+      retries: 15
+
+  gerbil:
+    image: fosrl/gerbil:1.2.2
+    container_name: gerbil
+    restart: unless-stopped
+    depends_on:
+      pangolin:
+        condition: service_healthy
+    command:
+      - --reachableAt=http://gerbil:3003
+      - --generateAndSaveKeyTo=/var/config/gerbil/key
+      - --reportBandwidthTo=http://pangolin:3001/api/v1/gerbil/receive-bandwidth
+      - --remoteConfig=http://pangolin:3001/api/v1/gerbil/get-config
+    volumes:
+      - ./config:/var/config
+      - gerbil:/var/config/gerbil
+    cap_add:
+      - NET_ADMIN
+      - SYS_MODULE
+    ports:
+      - 51820:51820/udp
+      - 443:443
+      - 80:80
+
+  traefik:
+    image: traefik:v3.6.0
+    container_name: traefik
+    restart: unless-stopped
+    network_mode: service:gerbil # Ports appear on the gerbil service
+    depends_on:
+      pangolin:
+        condition: service_healthy
+      crowdsec:
+        condition: service_healthy
+    command:
+      - --configFile=/etc/traefik/traefik_config.yml
+    environment:
+      - CLOUDFLARE_DNS_API_TOKEN=${CLOUDFLARE_API_TOKEN}
+    volumes:
+      - ./traefik_static_config:/etc/traefik:ro
+      - ./traefik_rules:/rules
+      - letsencrypt:/letsencrypt
+      - /opt/docker/logs/traefik:/var/log/traefik
+      - ${APP_DATA}/pangolin/secrets:/secrets:ro
+
+  crowdsec:
+    image: crowdsecurity/crowdsec:latest-debian
+    container_name: crowdsec
+    restart: unless-stopped
+    environment:
+      GID: "1000"
+      COLLECTIONS: "crowdsecurity/linux crowdsecurity/sshd crowdsecurity/traefik crowdsecurity/http-cve"
+      PARSERS: "crowdsecurity/whitelists"
+      ENROLL_KEY: "${CROWDSEC_ENROLLMENT_KEY}"
+      ENROLL_INSTANCE_NAME: "pangolin-gateway"
+      ENROLL_TAGS: "docker,pangolin,ssh-protection,web-protection"
+    volumes:
+      - ../crowdsec/config/crowdsec:/etc/crowdsec
+      - crowdsec_db:/var/lib/crowdsec/data
+      - /var/log/journal:/var/log/host:ro
+      - /opt/docker/logs/traefik:/var/log/traefik:ro
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+    ports:
+      - "8080:8080"
+      - "6060:6060"
+    labels:
+      - "deunhealth.restart.on.unhealthy=true"
+    healthcheck:
+      test: ["CMD", "cscli", "lapi", "status"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+volumes:
+  letsencrypt:
+    driver: local
+  pangolin_db:
+    driver: local
+  gerbil:
+    driver: local
+  crowdsec_db:
+    driver: local

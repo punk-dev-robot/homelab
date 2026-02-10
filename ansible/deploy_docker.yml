@@ -1,0 +1,24 @@
+- name: Mount data from nfs server
+  hosts: media-vm
+  become: true
+  tasks:
+    - name: Mount shared data
+      ansible.posix.mount:
+        boot: true
+        fstype: nfs
+        opts: "defaults,vers=4.1,rw,soft,retrans=10,nofail,_netdev,\
+          x-systemd.automount,x-systemd.mount-timeout=10,\
+          x-systemd.device-timeout=10,x-systemd.idle-timeout=0,\
+          lookupcache=positive"
+        state: mounted
+        path: "{{ media_dir }}"
+        src: "truenas.lan:/mnt/hddpool/data"
+
+- name: Deploy docker apps
+  hosts: docker
+  roles:
+    - role: docker
+      vars:
+        docker_setup: true
+        docker_deploy: true
+        docker_restart: true

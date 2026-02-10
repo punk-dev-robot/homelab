@@ -1,0 +1,28 @@
+---
+services:
+  neo4j:
+    extends:
+      file: ../common.yml
+      service: base
+    image: neo4j:latest
+    container_name: neo4j
+    environment:
+      - NEO4J_AUTH=${NEO4J_AUTH}
+      - NEO4J_server_memory_pagecache_size=1G
+      - NEO4J_server_memory_heap_max__size=1G
+      # HTTP access enabled, HTTPS via Traefik
+      - NEO4J_server_http_enabled=true
+      - NEO4J_server_https_enabled=false
+      - NEO4J_server_default__listen__address=0.0.0.0
+    volumes:
+      - ${APP_DATA}/neo4j/logs:/logs
+      - ${APP_DATA}/neo4j/certificates:/var/lib/neo4j/certificates
+      - neo4j-data:/data
+    ports:
+      - "7474:7474"  # HTTP
+      - "7687:7687"  # Bolt
+    networks:
+      - default
+
+volumes:
+  neo4j-data:

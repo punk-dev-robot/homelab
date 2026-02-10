@@ -1,0 +1,42 @@
+---
+# Base test execution engine
+# Standardized HTTP test execution with proper error handling
+
+- name: Execute standardized HTTP test
+  uri:
+    url: "{{ test_config.url }}"
+    method: "{{ test_config.method | default('GET') }}"
+    headers: "{{ (test_config.headers | default({})) | combine({'User-Agent': 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36'}) }}"
+    follow_redirects: "{{ test_config.follow_redirects | default('none') }}"
+    status_code: "{{ test_config.expected_statuses | default([200]) }}"
+    timeout: "{{ test_config.timeout | default(test_standards.timeout) }}"
+    return_content: "{{ test_config.return_content | default(false) }}"
+  register: http_result
+  ignore_errors: true
+
+- name: Validate redirect location when needed
+  set_fact:
+    location_valid: "{{ (http_result.location | default('') | regex_search(test_config.validation_pattern)) is not none }}"
+  when:
+    - test_config.validation_pattern is defined
+    - http_result.status is defined
+    - http_result.status == 302
+
+- name: Calculate test result based on pattern
+  set_fact:
+    test_passed: "{{ test_validation_result }}"
+  vars:
+    test_validation_result: "{{
+      test_config.validation_logic if test_config.validation_logic is defined
+      else (
+        http_result.status is defined and
+        http_result.status in (test_config.expected_statuses | default([200])) and
+        (location_valid | default(true)) and
+        not (http_result.failed | default(false)))
+    }}"
+
+- name: Set test result details
+  set_fact:
+    test_actual: "{{ http_result.status | default('no response') }} {{ http_result.location | default('') }}"
+    test_error: "{{ http_result.msg | default('') if (http_result.failed | default(false)) else '' }}"
+    test_duration_ms: "{{ ((ansible_date_time.epoch | int) - (test_start_time | int)) * 1000 }}"

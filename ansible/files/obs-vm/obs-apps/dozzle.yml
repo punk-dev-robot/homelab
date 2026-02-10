@@ -1,0 +1,14 @@
+services:
+  dozzle:
+    image: amir20/dozzle:latest
+    container_name: dozzle
+    extends:
+      file: ../common.yml
+      service: socket-base
+    environment:
+      - DOZZLE_REMOTE_AGENT=apps.lan:7007,media.lan:7007
+      # - DOZZLE_LEVEL=debug
+    ports:
+      - 8080:8080
+    labels:
+      - deunhealth.restart.on.unhealthy=true

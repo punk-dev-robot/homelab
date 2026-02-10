@@ -1,0 +1,85 @@
+- name: Tear down existing containers {{ cur_stack }}
+  community.docker.docker_compose_v2:
+    project_src: "{{ docker_compose_dir }}/{{ cur_stack }}"
+    state: absent
+  failed_when: false
+  when: docker_restart
+
+- name: Remove existing compose folder for {{ cur_stack }}
+  become: true
+  file:
+    path: "{{ docker_compose_dir }}/{{ cur_stack }}"
+    state: absent
+
+- name: Create compose folder for stack {{ cur_stack }}
+  file:
+    path: "{{ docker_compose_dir }}/{{ cur_stack }}"
+    state: directory
+    mode: "0755"
+
+- name: Generate env file {{ cur_stack }}
+  vars:
+    stack_env_vars: >-
+      {{ docker_env_vars.common | combine(
+        docker_env_vars[cur_stack] | default({}),
+        env_vars.common | default({}),
+        env_vars[cur_stack] | default({})
+      ) }}
+  copy:
+    content: |
+      {% for key, value in stack_env_vars.items() %}
+        {{ key }}={{ value }}
+      {% endfor %}
+    dest: "{{ docker_compose_dir }}/{{ cur_stack }}/.env"
+    mode: "0664"
+
+- name: Copy common.yml host file {{ cur_stack }}
+  copy:
+    src: "common.yml"
+    dest: "{{ docker_compose_dir }}"
+    mode: "0664"
+
+- name: Copy stack files {{ cur_stack }}
+  copy:
+    src: "{{ item }}"
+    dest: "{{ docker_compose_dir }}"
+    mode: "0664"
+  with_first_found:
+    - "{{ inventory_hostname }}/{{ cur_stack }}"
+    - "common/{{ cur_stack }}"
+
+- name: Template Pangolin config file (TEST/DEBUG CODE)
+  template:
+    src: "{{ playbook_dir }}/files/{{ inventory_hostname }}/{{ cur_stack }}/config/config.yml.j2"
+    dest: "{{ docker_compose_dir }}/{{ cur_stack }}/config/config.yml"
+    mode: "0664"
+  no_log: true
+  when: cur_stack == 'pangolin'
+
+- name: Template Traefik dynamic config with admin IPs from 1Password
+  template:
+    src: "dynamic_config.yml.j2"
+    dest: "{{ docker_compose_dir }}/{{ cur_stack }}/traefik_rules/dynamic_config.yml"
+    mode: "0664"
+  when: cur_stack == 'pangolin'
+
+- name: Template CrowdSec config files with admin IPs from 1Password
+  template:
+    src: "{{ item.src }}"
+    dest: "{{ docker_compose_dir }}/crowdsec/config/crowdsec/{{ item.dest }}"
+    mode: "0664"
+  loop:
+    - src: "config/crowdsec/parsers/s02-enrich/custom-admin-whitelist.yaml.j2"
+      dest: "parsers/s02-enrich/custom-admin-whitelist.yaml"
+    - src: "config/crowdsec/profiles.yaml.j2"
+      dest: "profiles.yaml"
+    - src: "config/crowdsec/whitelists.yaml.j2"
+      dest: "whitelists.yaml"
+    - src: "config/crowdsec/scenarios/custom-whitelist-protection.yaml.j2"
+      dest: "scenarios/custom-whitelist-protection.yaml"
+  when: cur_stack == 'pangolin'
+
+- name: Ensure services are running ({{ cur_stack }})
+  community.docker.docker_compose_v2:
+    project_src: "{{ docker_compose_dir }}/{{ cur_stack }}"
+  when: docker_restart

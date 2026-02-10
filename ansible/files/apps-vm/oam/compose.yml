@@ -1,0 +1,11 @@
+networks:
+  socket_proxy:
+    name: socket_proxy
+
+include:
+  - socket-proxy.yml
+  - deunhealth.yml
+  - docker-gc.yml
+  - watchtower.yml
+  - portainer-agent.yml
+  - dozzle-agent.yml

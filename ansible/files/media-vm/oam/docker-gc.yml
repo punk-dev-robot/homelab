@@ -1,0 +1,17 @@
+services:
+  # Docker-GC - Automatic Docker Garbage Collection
+  docker-gc:
+    image: clockworksoul/docker-gc-cron:latest
+    container_name: docker-gc
+    extends:
+      file: ../common.yml
+      service: socket-base
+    volumes:
+      - ./docker-gc-exclude:/etc/docker-gc-exclude
+    environment:
+      - CRON=0 0 */6 * * ? # run every 6 hours
+      - FORCE_IMAGE_REMOVAL=1 # remove images tagged in many repos. Disable on CI
+      - FORCE_CONTAINER_REMOVAL=0 # remove container if error occured
+      - GRACE_PERIOD_SECONDS=3600 # remove only containers older than
+      - DRY_RUN=0
+      - CLEAN_UP_VOLUMES=0

@@ -1,0 +1,18 @@
+services:
+  beszel:
+    extends:
+      file: ../common.yml
+      service: base
+    image: henrygd/beszel
+    container_name: beszel
+    ports:
+      - 8090:8090
+    volumes:
+      - beszel-data:/beszel_data
+    environment:
+      AUTO_LOGIN: kuba@nobasura.org
+      DISABLE_PASSWORD_AUTH: true
+
+volumes:
+  beszel-data:
+    name: beszel-data

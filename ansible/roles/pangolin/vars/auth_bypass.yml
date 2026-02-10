@@ -1,0 +1,31 @@
+pangolin_auth_bypass_header: "traefik-auth-bypass-key"
+pangolin_auth_bypass_priority: 300
+
+pangolin_auth_bypass_services:
+  - name: jellyseerr
+    pangolin_service: "38-service"
+    internal_url: "http://100.89.128.8:40046"
+  - name: sonarr
+    pangolin_service: "40-service"
+    internal_url: "http://100.89.128.8:50126"
+  - name: radarr
+    pangolin_service: "41-service"
+    internal_url: "http://100.89.128.8:58443"
+  - name: lidarr
+    pangolin_service: "42-service"
+    internal_url: "http://100.89.128.8:51340"
+  - name: readarr
+    pangolin_service: "43-service"
+    internal_url: "http://100.89.128.8:49164"
+  - name: bazarr
+    pangolin_service: "44-service"
+    internal_url: "http://100.89.128.8:60596"
+  - name: prowlarr
+    pangolin_service: "45-service"
+    internal_url: "http://100.89.128.8:53773"
+  - name: sabnzbd
+    pangolin_service: "46-service"
+    internal_url: "http://100.89.128.8:53166"
+  - name: nzbget
+    pangolin_service: "47-service"
+    internal_url: "http://100.89.128.8:46445"

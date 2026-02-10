@@ -1,0 +1,13 @@
+# DEPLOYED VIA JINJA2 TEMPLATE: templates/config/crowdsec/scenarios/custom-whitelist-protection.yaml.j2
+# Admin IPs sourced from 1Password at deploy time (ADMIN_IP_CONFIG item)
+type: trigger
+name: custom/whitelist-protection
+description: "Prevent scenarios from triggering on admin IPs"
+filter: |
+  evt.Meta.source_ip not in ["{{ crowdsec_config.admin_ip }}", "{{ crowdsec_config.admin_secondary_ip }}", "127.0.0.1", "::1"] &&
+  evt.Meta.source_ip not startsWith "10.100." &&
+  evt.Meta.source_ip not startsWith "172." &&
+  evt.Meta.source_ip not startsWith "{{ isp_prefix }}"
+blackhole: 1m
+labels:
+  service: ssh

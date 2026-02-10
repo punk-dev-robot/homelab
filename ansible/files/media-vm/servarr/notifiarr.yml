@@ -1,0 +1,16 @@
+services:
+  notifiarr:
+    container_name: notifiarr
+    hostname: notifiarr
+    extends:
+      file: ../common.yml
+      service: base
+    image: golift/notifiarr
+    ports:
+      - "5454:5454"
+    volumes:
+      - ${APP_DATA}/notifiarr:/config
+      - /var/run/utmp:/var/run/utmp
+      - /etc/machine-id:/etc/machine-id
+    environment:
+      - DN_AUTO_UPDATE=off

@@ -1,0 +1,15 @@
+services:
+  sonarr:
+    image: linuxserver/sonarr:latest
+    container_name: sonarr
+    extends:
+      file: ../common.yml
+      service: base
+    ports:
+      - "8989:8989"
+    volumes:
+      - ${DATA_DIR}:/data
+      - ${APP_DATA}/sonarr/config:/config
+      # for arr-scripts https://github.com/RandomNinjaAtk/arr-scripts/tree/main/radarr
+      - ${APP_DATA}/sonarr/custom-services.d:/custom-services.d
+      - ${APP_DATA}/sonarr/custom-cont-init.d:/custom-cont-init.d

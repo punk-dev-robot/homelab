@@ -1,0 +1,13 @@
+networks:
+  default:
+    name: obs-shared
+    external: true
+  socket_proxy:
+
+include:
+  - socket-proxy.yml
+  - beszel.yml
+  - dozzle.yml
+  - gotify.yml
+  - portainer.yml
+  - uptime-kuma.yml

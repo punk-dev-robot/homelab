@@ -1,0 +1,45 @@
+---
+# px-cpu specific configuration
+
+ansible_host: 10.10.101.11
+ansible_user: root
+
+# Hostname
+pve_hostname: px-cpu
+
+# Network configuration (for documentation only - not managed by Ansible)
+network_config:
+  management_ip: 10.10.101.11/24
+  gateway: 10.10.101.1
+  interfaces:
+    mgmt: enp89s0
+    wan: enp87s0
+    sfp_trunk: enp2s0f0np0
+    sfp_unused: enp2s0f1np1
+
+# Storage configuration
+pve_storage:
+  local:
+    path: /var/lib/vz
+    content:
+      - images
+      - rootdir
+      - snippets
+      - iso
+      - vztmpl
+  local-lvm:
+    vgname: pve
+    content:
+      - images
+      - rootdir
+
+# Resource allocation (for documentation)
+system_resources:
+  cpu: "Intel i9 13th gen"
+  cores: 24
+  ram_gb: 96
+  role: "Compute node - VMs requiring high CPU"
+
+# Node-specific settings
+pve_watchdog: none
+pve_cluster_enabled: false  # Not clustered yet

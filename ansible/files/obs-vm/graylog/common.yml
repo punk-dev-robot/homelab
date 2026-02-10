@@ -1,0 +1,6 @@
+services:
+  graylog-base:
+    restart: unless-stopped
+    labels:
+      - deunhealth.restart.on.unhealthy=true
+      - com.centurylinklabs.watchtower.monitor-only

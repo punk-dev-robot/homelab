@@ -1,0 +1,11 @@
+services:
+  prowlarr:
+    extends:
+      file: ../common.yml
+      service: base
+    image: linuxserver/prowlarr
+    container_name: prowlarr
+    ports:
+      - "9696:9696"
+    volumes:
+      - ${APP_DATA}/prowlarr:/config

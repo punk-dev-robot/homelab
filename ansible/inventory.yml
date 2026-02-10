@@ -1,0 +1,228 @@
+all:
+  vars:
+    docker_appdata_dir: /opt/docker/appdata
+    docker_compose_dir: /opt/docker/compose
+    docker_logs_dir: /opt/docker/logs
+    media_dir: /mnt/nas-data
+    docker_env_vars:
+      common:
+        PUID: "{{ docker_uid }}"
+        PGID: "{{ docker_gid }}"
+        TZ: "Europe/London"
+        UMASK: "022"
+        LOG_LEVEL: "info"
+        APP_DATA: "{{ docker_appdata_dir }}"
+      oam:
+        WT_GOTIFY_TOKEN: "{{ lookup('community.general.onepassword', 'WT_GOTIFY_TOKEN', vault='Homelab') }}"
+
+docker:
+  hosts:
+    apps-vm:
+      ansible_host: apps.lan
+      stacks: [oam, ai, tools, dbs]
+      # Pangolin configuration - references site definition
+      pangolin_site_ref: apps-vm
+      pangolin_newt_enabled: true
+      newt_id: "{{ lookup('community.general.onepassword', 'PANGOLIN_APPS_SITE_NEWT', field='username', vault='Homelab') }}"
+      newt_secret: "{{ lookup('community.general.onepassword', 'PANGOLIN_APPS_SITE_NEWT', vault='Homelab') }}"
+      env_vars:
+        newt:
+          NEWT_ID: "{{ newt_id }}"
+          NEWT_SECRET: "{{ newt_secret }}"
+          PANGOLIN_ENDPOINT: "https://pangolin.nobasura.org"
+        ai:
+          LITELLM_DB_USER: llmproxy
+          LITELLM_DB_PASS: "{{ lookup('community.general.onepassword', 'LITELLM_DB_PASS', vault='Homelab') }}"
+          LITELLM_MASTER_KEY: "{{ lookup('community.general.onepassword', 'LITELLM_MASTER_KEY', vault='Homelab') }}"
+          LITELLM_SALT_KEY: "{{ lookup('community.general.onepassword', 'LITELLM_SALT_KEY', vault='Homelab') }}"
+          OPENAI_API_KEY: "{{ lookup('community.general.onepassword', 'OpenAiApiKey', vault='Homelab') }}"
+          ANTHROPIC_API_KEY: "{{ lookup('community.general.onepassword', 'ClaudeApiKey', vault='Homelab') }}"
+          GEMINI_API_KEY: "{{ lookup('community.general.onepassword', 'GeminiApiKey', vault='Homelab') }}"
+          GITHUB_API_KEY: "{{ lookup('community.general.onepassword', 'GhCopilotApiToken', vault='Homelab') }}"
+        tools:
+          PERPLEXITY_API_KEY: "{{ lookup('community.general.onepassword', 'PERPLEXITY_API_KEY', vault='Homelab') }}"
+          ATUIN_DB_USER: atuin
+          ATUIN_DB_PASS: "{{ lookup('community.general.onepassword', 'ATUIN_DB_PASS', vault='Homelab') }}"
+          FIRECRAWL_API_KEY: "{{ lookup('community.general.onepassword', 'FIRECRAWL_API_KEY', vault='Homelab') }}"
+          # Karakeep configuration
+          KARAKEEP_VERSION: release
+          NEXTAUTH_SECRET: "{{ lookup('community.general.onepassword', 'KARAKEEP_NEXTAUTH_SECRET', vault='Homelab') }}"
+          NEXTAUTH_URL: https://karakeep.nobasura.org
+          NEXTAUTH_URL_INTERNAL: http://karakeep:3000
+          MEILI_MASTER_KEY: "{{ lookup('community.general.onepassword', 'KARAKEEP_MEILI_MASTER_KEY', vault='Homelab') }}"
+          OPENAI_API_KEY: "{{ lookup('community.general.onepassword', 'KARAKEEP_OPENAI_API_KEY', vault='Homelab') }}"
+          OPENAI_BASE_URL: https://litellm.lab.nobasura.org
+          OAUTH_ALLOW_DANGEROUS_EMAIL_ACCOUNT_LINKING: "true"
+          # LiteLLM model configuration - prefix required for proxy
+          INFERENCE_TEXT_MODEL: "openai/gpt-4o-mini"
+          INFERENCE_IMAGE_MODEL: "openai/gpt-4o-mini"
+          # SSO Configuration
+          OAUTH_WELLKNOWN_URL: "https://auth.nobasura.org/application/o/karakeep/.well-known/openid-configuration"
+          OAUTH_CLIENT_ID: "{{ lookup('community.general.onepassword', 'KARAKEEP_OAUTH_CLIENT', field='username', vault='Homelab') }}"
+          OAUTH_CLIENT_SECRET: "{{ lookup('community.general.onepassword', 'KARAKEEP_OAUTH_CLIENT', vault='Homelab') }}"
+          OAUTH_SCOPE: "openid email profile"
+          OAUTH_PROVIDER_NAME: "Authentik"
+          OAUTH_TIMEOUT: "3500"
+        dbs:
+          NEO4J_AUTH: "neo4j/{{ lookup('community.general.onepassword', 'NEO4J_PASSWORD', vault='Homelab') }}"
+    media-vm:
+      ansible_host: media.lan
+      stacks: [oam, servarr, jelly]
+      # Pangolin configuration - references site definition
+      newt_id: "{{ lookup('community.general.onepassword', 'PANGOLIN_MEDIA_SITE_NEWT', field='username', vault='Homelab') }}"
+      newt_secret: "{{ lookup('community.general.onepassword', 'PANGOLIN_MEDIA_SITE_NEWT', vault='Homelab') }}"
+      pangolin_site_ref: media-vm
+      pangolin_newt_enabled: true
+      env_vars:
+        common:
+          DATA_DIR: "{{ media_dir }}"
+        newt:
+          NEWT_ID: "{{ newt_id }}"
+          NEWT_SECRET: "{{ newt_secret }}"
+          PANGOLIN_ENDPOINT: "https://pangolin.nobasura.org"
+        servarr:
+          WIREGUARD_PRIVATE_KEY: "{{ lookup('community.general.onepassword', 'WIREGUARD_PRIVATE_KEY', vault='Homelab') }}"
+        jelly:
+          JELLYSTAT_DB_PASS: "{{ lookup('community.general.onepassword', 'JELLYSTAT_DB_PASS', vault='Homelab') }}"
+          JELLYSTAT_JWT_SECRET: "{{ lookup('community.general.onepassword', 'JELLYSTAT_JWT_SECRET', vault='Homelab') }}"
+    obs-vm:
+      ansible_host: obs.lan
+      stacks: [oam, obs-apps, grafana, graylog, tick]
+      # Pangolin configuration - references site definition
+      newt_id: "{{ lookup('community.general.onepassword', 'PANGOLIN_OBS_SITE_NEWT', field='username', vault='Homelab') }}"
+      newt_secret: "{{ lookup('community.general.onepassword', 'PANGOLIN_OBS_SITE_NEWT', vault='Homelab') }}"
+      pangolin_site_ref: obs-vm
+      pangolin_newt_enabled: true
+      env_vars:
+        newt:
+          NEWT_ID: "{{ newt_id }}"
+          NEWT_SECRET: "{{ newt_secret }}"
+          PANGOLIN_ENDPOINT: "https://pangolin.nobasura.org"
+        grafana:
+          PBS_API_TOKEN: "{{ lookup('community.general.onepassword', 'PBS_API_TOKEN', vault='Homelab') }}"
+          PIHOLE_API_TOKEN: "{{ lookup('community.general.onepassword', 'PIHOLE_API_TOKEN', vault='Homelab') }}"
+        graylog:
+          DATANODE_PASSWORD_SECRET: "{{ lookup('community.general.onepassword', 'GRAYLOG_PASSWORD_SECRET', vault='Homelab') }}"
+          DATANODE_ROOT_PASSWORD_SHA2: "{{ lookup('community.general.onepassword', 'GRAYLOG_ROOT_PASSWORD_SHA2', vault='Homelab') }}"
+          GRAYLOG_PASSWORD_SECRET: "{{ lookup('community.general.onepassword', 'GRAYLOG_PASSWORD_SECRET', vault='Homelab') }}"
+          GRAYLOG_ROOT_PASSWORD_SHA2: "{{ lookup('community.general.onepassword', 'GRAYLOG_ROOT_PASSWORD_SHA2', vault='Homelab') }}"
+
+gateway:
+  hosts:
+    gateway-vps:
+      ansible_host: 141.147.93.212
+      ansible_user: ubuntu
+      ansible_ssh_private_key_file: ~/.ssh/id_rsa
+      domain: pangolin.nobasura.org
+      stacks:
+        - pangolin
+        - authentik
+      # VPS-specific overrides for existing system
+      my_user: ubuntu
+      docker_user: ubuntu
+      docker_group: docker
+      docker_uid: 1001
+      # CrowdSec SSH Protection (minimal test setup)
+      crowdsec_enabled: true
+      crowdsec_config:
+        # Core settings
+        enrollment_key: "{{ lookup('community.general.onepassword', 'CROWDSEC_ENROLLMENT_KEY_VPS', vault='Homelab') | default('') }}"
+        instance_name: "pangolin-gateway-ssh"
+
+        # SSH protection only for now
+        collections:
+          - "crowdsecurity/linux"
+          - "crowdsecurity/sshd"
+
+        # Critical: User home IP protection
+        admin_ip: "{{ lookup('community.general.onepassword', 'ADMIN_IP', field='password', vault='Homelab') }}"
+        admin_secondary_ip: "{{ lookup('community.general.onepassword', 'ADMIN_IP', field='email', vault='Homelab') }}"
+        admin_isp_cidr: "{{ lookup('community.general.onepassword', 'ADMIN_IP', field='username', vault='Homelab') }}"
+
+      # CrowdSec Firewall Bouncer API key
+      crowdsec_firewall_bouncer_api_key: "{{ lookup('community.general.onepassword', 'CROWDSEC_FW_BOUNCER_VPS', vault='Homelab') }}"
+      env_vars:
+        pangolin:
+          DOMAIN: pangolin.nobasura.org
+          LETSENCRYPT_EMAIL: letsencrypt.a0f@nobasura.org
+          CLOUDFLARE_API_TOKEN: "{{ lookup('community.general.onepassword', 'CLOUDFLARE_API_TOKEN', vault='Homelab') }}"
+          PANGOLIN_ROOT_API_KEY: "{{ lookup('community.general.onepassword', 'PANGOLIN_ROOT_API_KEY', vault='Homelab') }}"
+          CROWDSEC_BOUNCER_API_KEY: "{{ crowdsec_traefik_bouncer_key }}"
+          CROWDSEC_ENROLLMENT_KEY: "{{ crowdsec_enrollment_key }}"
+          TRAEFIK_AUTH_BYPASS_KEY: "{{ lookup('community.general.onepassword', 'TRAEFIK_AUTH_BYPASS_KEY', vault='Homelab') }}"
+          RESEND_API_KEY: "{{ lookup('community.general.onepassword', 'RESEND_API_KEY', vault='Homelab') }}"
+          BESZEL_AGENT_VPS: "{{ lookup('community.general.onepassword', 'BESZEL_AGENT_VPS', vault='Homelab') }}"
+        authentik:
+          AUTHENTIK_PG_PASS: "{{ lookup('community.general.onepassword', 'AUTHENTIK_PG_PASS', vault='Homelab') }}"
+          AUTHENTIK_SECRET_KEY: "{{ lookup('community.general.onepassword', 'AUTHENTIK_SECRET_KEY', vault='Homelab') }}"
+          RESEND_API_KEY: "{{ lookup('community.general.onepassword', 'RESEND_API_KEY', vault='Homelab') }}"
+      docker_gid: 999 # VPS uses docker_gid: 999, different from homelab
+  vars:
+    # Pangolin Newt client configuration
+    pangolin_api_base: "https://api.nobasura.org"
+    pangolin_root_key: "{{ lookup('community.general.onepassword', 'PANGOLIN_ROOT_API_KEY', vault='Homelab') }}"
+    # pangolin_organization_id: "NoBasura"
+    pangolin_newt_docker_image: "ghcr.io/defined-networking/newt:latest"
+
+proxmox:
+  hosts:
+    px-cpu:
+      ansible_host: 10.10.101.11
+    px-net:
+      ansible_host: 10.10.101.12
+      pve_zfs_options: zfs_arc_max=10095689728
+    px-nas:
+      ansible_host: 10.10.101.13
+      pve_zfs_options: zfs_arc_max=3338665984
+  vars:
+    ansible_user: root
+    pve_group: homelab
+    # pve_watchdog: ipmi
+    # pve_ssl_private_key: "{{ lookup('file', pve_group + '/' + inventory_hostname + '.key') }}"
+    # pve_ssl_certificate: "{{ lookup('file', pve_group + '/' + inventory_hostname + '.pem') }}"
+    pve_cluster_enabled: true
+    pve_groups:
+      - name: ops
+        comment: Operations Team
+    pve_users:
+      - name: kuba@pam
+        email: admin@example.com
+        firstname: Kuba
+        # groups: ["ops"]
+      # - name: admin2@pam
+      #   email: admin2@lab.local
+      #   firstname: Admin
+      #   lastname: User 2
+      #   groups: ["ops"]
+    pve_acls:
+      - path: /
+        roles: ["Administrator"]
+        groups: ["ops"]
+    pve_zfs_enabled: true
+    # pve_storages:
+    #   - name: localdir
+    #     type: dir
+    #     content: ["images", "iso", "backup"]
+    #     path: /plop
+    #     maxfiles: 4
+    pve_ssh_port: 22
+    ### GPU Passthrough
+    pve_pcie_passthrough_enabled: true
+    pve_iommu_passthrough_mode: true
+    pve_iommu_unsafe_interrupts: false
+    pve_mediated_devices_enabled: false
+    pve_pcie_ovmf_enabled: false
+    # pve_pci_device_ids: []
+    pve_pci_device_ids:
+      - id: "0002:00:02.0"
+      - id: "0000:00:01.0"
+    pve_vfio_blacklist_drivers: []
+    # - name: "radeon"
+    # - name: "nouveau"
+    # - name: "nvidia"
+    pve_pcie_ignore_msrs: false
+    pve_pcie_report_msrs: true
+    # pve_bootloader: grub # default grub
+    pve_bootloader: systemd-boot # default grub
+
+    interfaces_template: "interfaces-{{ pve_group }}.j2"

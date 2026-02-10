@@ -1,0 +1,15 @@
+# Critical IP Whitelisting - Never block these IPs
+name: admin_whitelist
+description: "Admin and trusted IP addresses - NEVER block these"
+
+whitelist:
+  reason: "Admin/trusted IP - manual whitelist"
+  ip:
+    - "{{ crowdsec_config.admin_ip }}"
+    - "{{ crowdsec_config.admin_secondary_ip }}"
+    - "127.0.0.1"      # Localhost
+    - "::1"            # IPv6 localhost
+
+  # Optional: whitelist entire networks if needed
+  # cidr:
+  #   - "10.100.0.0/16"  # Pangolin tunnels

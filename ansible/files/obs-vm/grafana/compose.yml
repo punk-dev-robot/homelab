@@ -1,0 +1,9 @@
+networks:
+  default:
+    name: obs-shared
+    external: true
+
+include:
+  - grafana.yml
+  - loki.yml
+  - prometheus.yml

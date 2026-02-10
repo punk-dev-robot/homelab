@@ -1,0 +1,33 @@
+---
+# Centralized test configuration and standards
+# Production-grade test framework configuration
+
+test_standards:
+  timeout: 10
+  long_timeout: 15
+  bypass_header_name: "{{ pangolin_auth_bypass_header }}"
+
+test_categories:
+  security:
+    critical: true
+    timeout: "{{ test_standards.timeout }}"
+    description: "Critical security validation tests"
+  functionality:
+    critical: true
+    timeout: "{{ test_standards.long_timeout }}"
+    description: "Critical functionality validation tests"
+
+test_patterns:
+  sso_redirect:
+    expected_status: 302
+    validation_pattern: "pangolin\\.{{ organization_domain }}"
+    description: "SSO authentication redirect pattern"
+
+  bypass_success:
+    expected_status: 200
+    exclude_pattern: "pangolin\\.{{ organization_domain }}"
+    description: "Successful auth bypass pattern"
+
+test_services:
+  auth_bypass: "{{ (pangolin_auth_bypass_services | map(attribute='name') | list)[:3] }}"
+  sso_protected: ["grafana", "openwebui", "jellyfin"]

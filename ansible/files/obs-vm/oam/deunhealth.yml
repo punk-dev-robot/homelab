@@ -1,0 +1,10 @@
+services:
+  deunhealth:
+    image: qmcgaw/deunhealth
+    container_name: deunhealth
+    extends:
+      file: ../common.yml
+      service: socket-base
+    environment:
+      HEALTH_SERVER_ADDRESS: 127.0.0.1:9999
+      LOG_LEVEL: debug

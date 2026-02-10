@@ -1,0 +1,77 @@
+---
+# Pangolin Role - Host Configuration Tasks
+# Manages /etc/hosts entries for Pangolin service resolution
+
+- name: Ensure required packages are installed
+  package:
+    name:
+      - dnsutils
+    state: present
+
+- name: Add homelab service entries to /etc/hosts
+  lineinfile:
+    path: /etc/hosts
+    line: "{{ item.ip }}\t{{ item.hostnames | join(' ') }}\t# {{ item.comment }}"
+    regexp: "^{{ item.ip }}\\s+.*# {{ item.comment }}$"
+    state: present
+    backup: true
+  loop: "{{ pangolin_hosts_entries }}"
+  loop_control:
+    label: "{{ item.ip }} -> {{ item.hostnames | join(', ') }}"
+
+- name: Test DNS resolution for all services
+  command: "nslookup {{ item.hostnames[0] }}"
+  register: dns_test
+  failed_when: false
+  changed_when: false
+  loop: "{{ pangolin_hosts_entries }}"
+  loop_control:
+    label: "{{ item.hostnames[0] }}"
+
+- name: Display DNS resolution results
+  debug:
+    msg: |
+      🔍 DNS RESOLUTION TEST RESULTS:
+
+      {% for result in dns_test.results %}
+      {% set hostname = pangolin_hosts_entries[loop.index0].hostnames[0] %}
+      {% set expected_ip = pangolin_hosts_entries[loop.index0].ip %}
+
+      {{ hostname }}:
+      {% if result.rc == 0 %}
+      ✅ Resolved successfully
+      {% else %}
+      ❌ Resolution failed - checking /etc/hosts entry
+      {% endif %}
+      {% endfor %}
+
+- name: Verify /etc/hosts entries are active
+  command: "getent hosts {{ item.hostnames[0] }}"
+  register: hosts_verification
+  failed_when: false
+  changed_when: false
+  loop: "{{ pangolin_hosts_entries }}"
+  loop_control:
+    label: "{{ item.hostnames[0] }}"
+
+- name: Display /etc/hosts verification
+  debug:
+    msg: |
+      📋 /ETC/HOSTS VERIFICATION:
+
+      {% for result in hosts_verification.results %}
+      {% set hostname = pangolin_hosts_entries[loop.index0].hostnames[0] %}
+      {% set expected_ip = pangolin_hosts_entries[loop.index0].ip %}
+
+      {{ hostname }}:
+      {% if result.rc == 0 %}
+      ✅ Entry active: {{ result.stdout }}
+      {% else %}
+      ❌ Entry not found in hosts file
+      {% endif %}
+      {% endfor %}
+
+      🎯 NEXT STEPS:
+      - Run resource creation playbook to populate Pangolin targets
+      - Test connectivity through Pangolin tunnels
+      - Verify external domain access

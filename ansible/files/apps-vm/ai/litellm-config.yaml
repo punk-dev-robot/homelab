@@ -1,0 +1,62 @@
+model_list:
+  - model_name: "anthropic/*"
+    litellm_params:
+      model: "anthropic/*"
+      api_key: os.environ/ANTHROPIC_API_KEY
+
+  - model_name: "openai/*"
+    litellm_params:
+      model: openai/* # set `openai/` to use the openai route
+      api_key: os.environ/OPENAI_API_KEY
+
+  - model_name: "gemini/*"
+    litellm_params:
+      model: gemini/* # set `openai/` to use the openai route
+      api_key: os.environ/GEMINI_API_KEY
+
+  - model_name: "perplexity/*"
+    litellm_params:
+      model: perplexity/*
+      api_key: os.environ/PERPLEXITY_API_KEY
+
+  # - model_name: github-gpt-4o-mini
+  #   litellm_params:
+  #     model: github/gpt-4o-mini
+  #     api_key: os.environ/GITHUB_API_KEY # ensure you have `GITHUB_API_KEY` in your .env
+  #
+  # - model_name: github-claude-3.7-sonnet
+  #   litellm_params:
+  #     model: github/claude-3.7-sonnet
+  #     api_key: os.environ/GITHUB_API_KEY # ensure you have `GITHUB_API_KEY` in your .env
+  #
+  # - model_name: github-claude-3.7-sonnet-thought
+  #   litellm_params:
+  #     model: github/claude-3.7-sonnet-thought
+  #     api_key: os.environ/GITHUB_API_KEY # ensure you have `GITHUB_API_KEY` in your .env
+  #
+  # - model_name: github-claude-4-0-sonnet
+  #   litellm_params:
+  #     model: github/claude-4.0-sonnet
+  #     api_key: os.environ/GITHUB_API_KEY # ensure you have `GITHUB_API_KEY` in your .env
+  #
+  # - model_name: github-claude-4-0-sonnet
+  #   litellm_params:
+  #     model: github/claude-4.0-sonnet-thought
+  #     api_key: os.environ/GITHUB_API_KEY # ensure you have `GITHUB_API_KEY` in your .env
+  #
+  # - model_name: github-claude-4.0-opus
+  #   litellm_params:
+  #     model: github/claude-4.0-opus
+  #     api_key: os.environ/GITHUB_API_KEY # ensure you have `GITHUB_API_KEY` in your .env
+  #
+  # - model_name: github-gemini-2.5-flash
+  #   litellm_params:
+  #     model: github/gemini-2.5-flash
+  #     api_key: os.environ/GITHUB_API_KEY # ensure you have `GITHUB_API_KEY` in your .env
+  #
+  # - model_name: github-gemini-2.5-pro
+  #   litellm_params:
+  #     model: github/gemini-2.5-pro
+  #     api_key: os.environ/GITHUB_API_KEY # ensure you have `GITHUB_API_KEY` in your .env
+# general_settings:
+#   master_key: os.environ/LITELLM_MASTER_KEY

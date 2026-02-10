@@ -1,0 +1,75 @@
+# To see all available options, please visit the docs:
+# https://docs.fossorial.io/Pangolin/Configuration/config
+
+app:
+  dashboard_url: "https://pangolin.nobasura.org"
+  log_level: "debug"
+  save_logs: false
+
+domains:
+  domain1:
+    base_domain: "nobasura.org"
+    cert_resolver: "letsencrypt"
+
+server:
+  external_port: 3000
+  internal_port: 3001
+  next_port: 3002
+  integration_port: 3003
+  internal_hostname: "pangolin"
+  session_cookie_name: "p_session_token"
+  resource_access_token_param: "p_token"
+  resource_access_token_headers:
+    id: "P-Access-Token-Id"
+    token: "P-Access-Token"
+  resource_session_request_param: "p_session_request"
+  secret: "{{ lookup('community.general.onepassword', 'PANGOLIN_SESSION_SECRET', vault='Homelab') }}"
+  cors:
+    origins: ["https://pangolin.nobasura.org"]
+    methods: ["GET", "POST", "PUT", "DELETE", "PATCH"]
+    # allowed_headers:
+    #   [
+    #     "X-CSRF-Token",
+    #     "Content-Type",
+    #   ]
+    headers: ["X-CSRF-Token", "Content-Type"]
+    credentials: false
+
+traefik:
+  cert_resolver: "letsencrypt"
+  http_entrypoint: "web"
+  https_entrypoint: "websecure"
+
+gerbil:
+  start_port: 51820
+  base_endpoint: "pangolin.nobasura.org"
+  use_subdomain: false
+  block_size: 24
+  site_block_size: 30
+  subnet_group: 100.89.137.0/20
+
+rate_limits:
+  global:
+    window_minutes: 1
+    max_requests: 500
+
+email:
+  smtp_host: "smtp.resend.com"
+  smtp_port: 587
+  smtp_user: "resend"
+  smtp_pass: "{{ lookup('community.general.onepassword', 'RESEND_API_KEY', vault='Homelab') }}"
+  smtp_secure: false
+  no_reply: "no-reply@notify.nobasura.org"
+
+users:
+  server_admin:
+    email: "{{ lookup('community.general.onepassword', 'PANGOLIN_DEFAULT_ADMIN', field='username', vault='Homelab') }}"
+    password: "{{ lookup('community.general.onepassword', 'PANGOLIN_DEFAULT_ADMIN', vault='Homelab') }}"
+
+flags:
+  require_email_verification: false
+  disable_signup_without_invite: true
+  disable_user_create_org: true
+  allow_raw_resources: true
+  allow_base_domain_resources: true
+  enable_integration_api: true

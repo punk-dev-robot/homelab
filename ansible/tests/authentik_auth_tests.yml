@@ -1,0 +1,132 @@
+---
+# Authentik Authentication Service Tests
+# Comprehensive test suite for Authentik SSO authentication service
+# Tests: health, authentication flow, security, integration
+
+- name: Authentik Service Health Check
+  include_tasks: common/test_base.yml
+  vars:
+    test_config:
+      name: "authentik_health"
+      url: "https://auth.{{ organization_domain }}/-/health/live/"
+      method: GET
+      expected_statuses: [200]
+      timeout: "{{ test_standards.timeout }}"
+      critical: true
+      category: "health"
+      description: "Authentik service health endpoint validation"
+  tags: ["health", "critical", "smoke"]
+
+- name: Authentik Authentication Flow - Unauthenticated Access
+  include_tasks: common/test_base.yml
+  vars:
+    test_config:
+      name: "authentik_auth_flow"
+      url: "https://auth.{{ organization_domain }}/if/flow/default-authentication-flow/"
+      method: GET
+      expected_statuses: [200]
+      timeout: "{{ test_standards.timeout }}"
+      critical: true
+      category: "functionality"
+      description: "Authentik authentication flow accessibility"
+  tags: ["functionality", "critical", "smoke"]
+
+- name: Authentik Admin Interface Security - Should Require Authentication
+  include_tasks: common/test_base.yml
+  vars:
+    test_config:
+      name: "authentik_admin_security"
+      url: "https://auth.{{ organization_domain }}/if/admin/"
+      method: GET
+      expected_statuses: [302, 200]
+      timeout: "{{ test_standards.timeout }}"
+      critical: true
+      category: "security"
+      description: "Authentik admin interface authentication requirement"
+      validation_logic: >-
+        (http_result.status == 302 and 
+         (http_result.location | default('') | regex_search('login|auth|sign-in'))) or
+        (http_result.status == 200 and 
+         ('login' in (http_result.content | default('')) or 
+          'authentication' in (http_result.content | default(''))))
+  tags: ["security", "critical"]
+
+- name: Authentik API Health Check
+  include_tasks: common/test_base.yml
+  vars:
+    test_config:
+      name: "authentik_api_health"
+      url: "https://auth.{{ organization_domain }}/api/v3/root/config/"
+      method: GET
+      expected_statuses: [401, 403]
+      timeout: "{{ test_standards.timeout }}"
+      critical: true
+      category: "security"
+      description: "Authentik API requires authentication"
+  tags: ["security", "api"]
+
+- name: Authentik OpenID Configuration Endpoint
+  include_tasks: common/test_base.yml
+  vars:
+    test_config:
+      name: "authentik_oidc_config"
+      url: "https://auth.{{ organization_domain }}/application/o/pangolin/.well-known/openid_configuration"
+      method: GET
+      expected_statuses: [200]
+      timeout: "{{ test_standards.timeout }}"
+      critical: true
+      category: "functionality"
+      description: "Authentik OpenID Connect configuration endpoint"
+      validation_logic: >-
+        (http_result.status == 200 and 
+         'issuer' in (http_result.content | default('')) and
+         'authorization_endpoint' in (http_result.content | default('')))
+  tags: ["functionality", "critical", "oidc"]
+
+- name: Authentik Application Integration - Pangolin OAuth
+  include_tasks: common/test_base.yml
+  vars:
+    test_config:
+      name: "authentik_pangolin_oauth"
+      url: "https://auth.{{ organization_domain }}/application/o/authorize/pangolin/"
+      method: GET
+      expected_statuses: [302, 400]
+      timeout: "{{ test_standards.timeout }}"
+      critical: true
+      category: "functionality"
+      description: "Authentik OAuth authorization endpoint for Pangolin"
+      validation_logic: >-
+        (http_result.status == 302 and 
+         (http_result.location | default('') | regex_search('login|auth|sign-in'))) or
+        (http_result.status == 400 and 
+         'redirect_uri' in (http_result.content | default('')) or
+         'client_id' in (http_result.content | default('')))
+  tags: ["functionality", "integration", "oauth"]
+
+- name: Authentik Service Discovery and Metrics
+  include_tasks: common/test_base.yml
+  vars:
+    test_config:
+      name: "authentik_metrics"
+      url: "https://auth.{{ organization_domain }}/metrics/"
+      method: GET
+      expected_statuses: [401, 403, 404]
+      timeout: "{{ test_standards.timeout }}"
+      critical: false
+      category: "monitoring"
+      description: "Authentik metrics endpoint security (should be protected)"
+  tags: ["monitoring", "security"]
+
+- name: Authentik Static Assets Accessibility
+  include_tasks: common/test_base.yml
+  vars:
+    test_config:
+      name: "authentik_static_assets"
+      url: "https://auth.{{ organization_domain }}/static/dist/assets/authentik.css"
+      method: GET
+      expected_statuses: [200, 404]
+      timeout: "{{ test_standards.timeout }}"
+      critical: false
+      category: "functionality"
+      description: "Authentik static assets accessibility"
+  tags: ["functionality", "assets"]

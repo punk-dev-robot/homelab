@@ -1,0 +1,54 @@
+- name: Check if docker group exists
+  getent:
+    database: group
+    key: "{{ docker_group }}"
+  register: docker_group_exists
+  failed_when: false
+
+- name: Create docker group
+  group:
+    name: "{{ docker_group }}"
+    gid: "{{ docker_gid }}"
+  when: docker_group_exists.ansible_facts.getent_group is not defined or docker_group_exists.ansible_facts.getent_group[docker_group] is not defined
+
+# - name: Ensure dockuser
+#   become: true
+#   user:
+#     name: "{{ docker_user }}"
+#     create_home: false
+#     # system: true
+#     shell: /usr/sbin/nologin
+#     group: "{{ docker_group }}"
+#     uid: "{{ docker_uid }}"
+
+- name: Add my user to docker group
+  user:
+    name: "{{ docker_my_user }}"
+    groups: "{{ docker_group }}"
+    append: true
+
+- name: Ensure docker dirs
+  become: true
+  file:
+    path: "{{ item }}"
+    state: directory
+    owner: "{{ docker_user }}"
+    group: "{{ docker_group }}"
+    mode: "0775"
+  loop:
+    - "{{ docker_home_dir }}"
+    - "{{ docker_compose_dir }}"
+    - "{{ docker_logs_dir }}"
+    - "{{ docker_appdata_dir }}"
+- name: Install docker
+  become: true
+  vars:
+    docker_users:
+      - "{{ docker_my_user }}"
+    docker_daemon_options:
+      log-driver: "json-file"
+      log-opts:
+        max-size: "{{ docker_log_max_size }}"
+        max-file: "{{ docker_log_max_file }}"
+  import_role:
+    name: geerlingguy.docker

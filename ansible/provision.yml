@@ -1,0 +1,13 @@
+- name: Shared configuration
+  become: true
+  hosts: docker
+  tasks:
+    - name: Ensure hostname
+      hostname:
+        name: "{{ ansible_host }}"
+    - name: Install utils
+      apt:
+        name: "{{ item }}"
+        update_cache: true
+        cache_valid_time: 3600
+      loop: [git, wget, unzip, curl, neovim, ripgrep, zoxide]

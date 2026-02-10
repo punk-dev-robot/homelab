@@ -1,0 +1,12 @@
+include:
+  - pangolin.yml
+  - middleware-manager.yml
+  - auth-bypass.yml
+  - beszel-agent.yml
+  # - dozzle-agent.yml
+  - dozzle.yml
+
+networks:
+  default:
+    driver: bridge
+    name: pangolin

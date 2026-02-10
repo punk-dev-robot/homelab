@@ -1,0 +1,20 @@
+# Pangolin Token Storage - Keep secrets out of version control
+.pangolin/
+*.token
+pangolin_tokens/
+
+# Ansible vault files
+vault_pass.txt
+.vault_password
+
+# Temporary deployment files
+*.retry
+.ansible/
+
+# Test files
+test_*.yml
+*_test.yml
+
+# Log files
+*.log
+deployment_*.txt

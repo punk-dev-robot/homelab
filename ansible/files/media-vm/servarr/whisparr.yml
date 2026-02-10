@@ -1,0 +1,12 @@
+services:
+  whisparr:
+    extends:
+      file: ../common.yml
+      service: base
+    image: ghcr.io/hotio/whisparr:v3
+    container_name: whisparr
+    ports:
+      - 6969:6969
+    volumes:
+      - ${DATA_DIR}:/data
+      - ${APP_DATA}/whisparr:/config

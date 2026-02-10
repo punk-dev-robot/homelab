@@ -1,0 +1,12 @@
+services:
+  bazarr:
+    image: linuxserver/bazarr
+    container_name: bazarr
+    extends:
+      file: ../common.yml
+      service: base
+    ports:
+      - "6767:6767"
+    volumes:
+      - ${DATA_DIR}:/data
+      - ${APP_DATA}/bazarr:/config

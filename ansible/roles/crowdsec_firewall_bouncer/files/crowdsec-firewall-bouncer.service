@@ -1,0 +1,33 @@
+[Unit]
+Description=CrowdSec Firewall Bouncer
+Documentation=https://docs.crowdsec.net/u/bouncers/firewall
+After=network.target crowdsec.service
+Wants=crowdsec.service
+
+[Service]
+Type=notify
+ExecStart=/usr/local/bin/crowdsec-firewall-bouncer -c /etc/crowdsec/bouncers/crowdsec-firewall-bouncer.yaml
+ExecReload=/bin/kill -USR1 $MAINPID
+Restart=always
+RestartSec=60
+StandardOutput=journal
+StandardError=journal
+
+# Security settings
+NoNewPrivileges=true
+ProtectSystem=strict
+ProtectHome=true
+ReadWritePaths=/var/log /etc/crowdsec/bouncers
+PrivateTmp=true
+ProtectControlGroups=true
+ProtectKernelModules=true
+ProtectKernelTunables=true
+RestrictRealtime=true
+RestrictSUIDSGID=true
+
+# Network capabilities for iptables/ipset management
+CapabilityBoundingSet=CAP_NET_ADMIN CAP_NET_RAW
+AmbientCapabilities=CAP_NET_ADMIN CAP_NET_RAW
+
+[Install]
+WantedBy=multi-user.target

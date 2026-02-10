@@ -1,0 +1,21 @@
+---
+- name: Test basic connectivity to px-cpu
+  hosts: px-cpu
+  gather_facts: no
+  vars:
+    ansible_ssh_common_args: '-o PreferredAuthentications=password -o PubkeyAuthentication=no -o PasswordAuthentication=yes'
+
+  tasks:
+    - name: Test connection
+      ping:
+      tags: [test]
+
+    - name: Show SSH daemon config
+      command: grep -E "^(PasswordAuthentication|PermitRootLogin)" /etc/ssh/sshd_config
+      register: ssh_config
+      tags: [test]
+
+    - name: Display SSH config
+      debug:
+        var: ssh_config.stdout_lines
+      tags: [test]

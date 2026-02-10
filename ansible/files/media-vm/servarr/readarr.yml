@@ -1,0 +1,12 @@
+services:
+  readarr:
+    extends:
+      file: ../common.yml
+      service: base
+    image: linuxserver/readarr:develop
+    container_name: readarr
+    ports:
+      - "8787:8787"
+    volumes:
+      - ${DATA_DIR}:/data
+      - ${APP_DATA}/readarr:/config

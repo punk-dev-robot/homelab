@@ -1,0 +1,25 @@
+services:
+  loki:
+    extends:
+      file: ../common.yml
+      service: base
+    image: grafana/loki
+    container_name: loki
+    ports:
+      - 3100:3100
+    volumes:
+      - ./loki-config.yaml:/etc/loki/loki-config.yaml
+    command: -config.file=/etc/loki/loki-config.yaml
+    labels:
+      - com.centurylinklabs.watchtower.monitor-only
+
+  promtail:
+    extends:
+      file: ../common.yml
+      service: base
+    image: grafana/promtail:latest
+    container_name: promtail
+    volumes:
+      - /var/log:/var/log
+      - ./promtail-config.yaml:/etc/promtail/promtail-config.yaml
+    command: -config.file=/etc/promtail/promtail-config.yaml

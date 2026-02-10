@@ -1,0 +1,7 @@
+include:
+  - jellyfin.yml
+  - jellyseerr.yml
+  - jellystat.yml
+  - stash.yml
+  # - jolly.yml
+  - janitorr.yml

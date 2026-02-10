@@ -1,0 +1,44 @@
+---
+# Production-grade test framework helpers
+# Centralized initialization and reporting
+
+- name: Initialize test framework
+  include_tasks: common/test_init.yml
+  when: test_results is not defined
+
+- name: Generate final test report
+  debug:
+    msg: |
+
+      🧪 INFRASTRUCTURE TEST RESULTS
+      ================================
+      Total Tests: {{ test_summary.total | int }}
+      Passed: {{ test_summary.passed | int }}
+      Failed: {{ test_summary.failed | int }}
+      Duration: {{ ((ansible_date_time.epoch | int) - (start_time | int)) }}s
+
+      {% if (test_summary.failed | int) > 0 %}
+      ❌ FAILED TESTS:
+      {% for result in test_results %}
+      {% if result.status == 'FAIL' %}
+      {{ '🚨' if result.critical else '⚠️' }} {{ result.name }}
+        Expected: {{ result.expected }}
+        Actual: {{ result.actual }}
+        {% if result.error %}Error: {{ result.error }}{% endif %}
+      {% endif %}
+      {% endfor %}
+      {% endif %}
+
+      {% if test_summary.critical_failures | length > 0 %}
+      🚨 CRITICAL FAILURES DETECTED
+      Deployment should be blocked!
+      {% endif %}
+  when: test_summary is defined and (generate_final_report | default(false))
+
+- name: Fail on critical test failures
+  fail:
+    msg: "Critical infrastructure tests failed. Blocking deployment for safety."
+  when:
+    - test_summary is defined
+    - (test_summary.critical_failures | length) > 0
+    - generate_final_report | default(false)

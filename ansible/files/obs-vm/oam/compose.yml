@@ -1,0 +1,8 @@
+networks:
+  socket_proxy:
+
+include:
+  - socket-proxy.yml
+  - deunhealth.yml
+  - docker-gc.yml
+  - watchtower.yml

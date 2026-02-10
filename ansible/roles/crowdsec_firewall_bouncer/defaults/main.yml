@@ -1,0 +1,4 @@
+---
+# API key for CrowdSec firewall bouncer authentication
+# Must be set by the user - obtain from CrowdSec LAPI
+crowdsec_firewall_bouncer_api_key: ""

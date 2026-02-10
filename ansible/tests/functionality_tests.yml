@@ -1,0 +1,19 @@
+---
+# Functionality Validation Tests
+# Production-grade functionality test suite using standardized patterns
+
+- name: Test auth bypass with valid key works
+  include_tasks: functionality_test_bypass.yml
+  loop: "{{ pangolin_auth_bypass_services[:3] }}"
+  loop_control:
+    loop_var: target_service
+
+- name: Test normal SSO authentication flow
+  include_tasks: functionality_test_sso.yml
+  loop: "{{ test_services.sso_protected }}"
+  loop_control:
+    loop_var: target_service
+
+- name: Authentik Authentication Service Functionality Tests
+  include_tasks: authentik_auth_tests.yml
+  tags: ["functionality", "authentik"]

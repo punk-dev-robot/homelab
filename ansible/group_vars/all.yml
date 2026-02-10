@@ -1,0 +1,239 @@
+---
+# Default values for Pangolin API configuration
+
+# API Configuration
+pangolin_api_base: "https://api.nobasura.org" # Integration API for CRUD operations
+pangolin_root_key: "{{ lookup('community.general.onepassword', 'PANGOLIN_ROOT_API_KEY', vault='Homelab') }}"
+
+# CrowdSec Configuration
+crowdsec_enrollment_key: "{{ lookup('community.general.onepassword', 'CROWDSEC_ENROLLMENT_KEY_VPS', vault='Homelab') }}"
+crowdsec_traefik_bouncer_key: "{{ lookup('community.general.onepassword', 'CROWDSEC_TRAEFIK_BOUNCER_KEY_VPS', vault='Homelab') }}"
+
+# Auth Bypass Configuration
+auth_bypass_key: "{{ lookup('community.general.onepassword', 'TRAEFIK_AUTH_BYPASS_KEY', vault='Homelab') }}"
+
+# Organization defaults
+organization_name: "NoBasura"
+organization_id_slug: "nobasura"
+organization_domain: "nobasura.org"
+
+# Complete homelab service configuration
+homelab_sites:
+  - name: "apps"
+    description: "Application services and development tools"
+    internal_domain: "apps.lan"
+    subnet: "10.100.10.0/24"
+    services:
+      # AI Services
+      - name: "openwebui"
+        internal_ip: "apps.lan"
+        internal_port: 3000
+        external_domain: "openwebui.nobasura.org"
+      - name: "litellm"
+        internal_ip: "apps.lan"
+        internal_port: 4000
+        external_domain: "litellm.nobasura.org"
+      - name: "openhands"
+        internal_ip: "apps.lan"
+        internal_port: 3001
+        external_domain: "openhands.nobasura.org"
+      # Lab Services
+      - name: "homepage"
+        internal_ip: "apps.lan"
+        internal_port: 3000
+        external_domain: "homepage.nobasura.org"
+      # Tools Services
+      - name: "firecrawl"
+        internal_ip: "apps.lan"
+        internal_port: 3002
+        external_domain: "firecrawl.nobasura.org"
+      - name: "atuin"
+        internal_ip: "apps.lan"
+        internal_port: 8888
+        external_domain: "atuin.nobasura.org"
+      - name: "it-tools"
+        internal_ip: "apps.lan"
+        internal_port: 8080
+        external_domain: "it-tools.nobasura.org"
+      - name: "karakeep"
+        internal_ip: "apps.lan"
+        internal_port: 3004
+        external_domain: "karakeep.nobasura.org"
+
+  - name: "media"
+    description: "Media streaming and acquisition services"
+    internal_domain: "media.lan"
+    # subnet: "10.100.20.0/24"
+    services:
+      # Jellyfin ecosystem
+      - name: "jellyfin"
+        internal_ip: "media.lan"
+        internal_port: 8096
+        external_domain: "jellyfin.nobasura.org"
+        health_check: "/health"
+      - name: "jellyseerr"
+        internal_ip: "media.lan"
+        internal_port: 5055
+        external_domain: "jellyseerr.nobasura.org"
+        health_check: "/"
+      - name: "jellystat"
+        internal_ip: "media.lan"
+        internal_port: 3000
+        external_domain: "jellystat.nobasura.org"
+        health_check: "/"
+      # - name: "jolly"
+      #   internal_ip: "media.lan"
+      #   internal_port: 8080
+      #   external_domain: "jolly.nobasura.org"
+      # - name: "stash"
+      #   internal_ip: "media.lan"
+      #   internal_port: 9999
+      #   external_domain: "stash.nobasura.org"
+      # Servarr stack
+      - name: "sonarr"
+        internal_ip: "media.lan"
+        internal_port: 8989
+        external_domain: "sonarr.nobasura.org"
+        health_check: "/api/v3/health"
+      - name: "radarr"
+        internal_ip: "media.lan"
+        internal_port: 7878
+        external_domain: "radarr.nobasura.org"
+        health_check: "/api/v3/health"
+      - name: "lidarr"
+        internal_ip: "media.lan"
+        internal_port: 8686
+        external_domain: "lidarr.nobasura.org"
+        health_check: "/api/v1/health"
+      - name: "readarr"
+        internal_ip: "media.lan"
+        internal_port: 8787
+        external_domain: "readarr.nobasura.org"
+        health_check: "/api/v1/health"
+      - name: "bazarr"
+        internal_ip: "media.lan"
+        internal_port: 6767
+        external_domain: "bazarr.nobasura.org"
+        health_check: "/api/health"
+      - name: "prowlarr"
+        internal_ip: "media.lan"
+        internal_port: 9696
+        external_domain: "prowlarr.nobasura.org"
+        health_check: "/api/v1/health"
+      # - name: "whisparr"
+      #   internal_ip: "media.lan"
+      #   internal_port: 6969
+      #   external_domain: "whisparr.nobasura.org"
+      #   health_check: "/api/v3/health"
+      - name: "sabnzbd"
+        internal_ip: "media.lan"
+        internal_port: 8080
+        external_domain: "sabnzbd.nobasura.org"
+        health_check: "/api"
+      - name: "nzbget"
+        internal_ip: "media.lan"
+        internal_port: 6789
+        external_domain: "nzbget.nobasura.org"
+        health_check: "/api"
+      - name: "deluge"
+        internal_ip: "media.lan"
+        internal_port: 8112
+        external_domain: "deluge.nobasura.org"
+        health_check: "/"
+      - name: "notifiarr"
+        internal_ip: "media.lan"
+        internal_port: 5454
+        external_domain: "notifiarr.nobasura.org"
+        health_check: "/"
+
+  - name: "obs"
+    description: "Observability and monitoring services"
+    internal_domain: "obs.lan"
+    subnet: "10.100.30.0/24"
+    services:
+      # Grafana stack
+      - name: "grafana"
+        internal_ip: "obs.lan"
+        internal_port: 3000
+        external_domain: "grafana.nobasura.org"
+        health_check: "/api/health"
+      # - name: "prometheus"
+      #   internal_ip: "obs.lan"
+      #   internal_port: 9090
+      #   external_domain: "prometheus.nobasura.org"
+      #   health_check: "/-/healthy"
+      - name: "loki"
+        internal_ip: "obs.lan"
+        internal_port: 3100
+        external_domain: "loki.nobasura.org"
+        health_check: "/ready"
+      # Graylog
+      - name: "graylog"
+        internal_ip: "obs.lan"
+        internal_port: 9000
+        external_domain: "graylog.nobasura.org"
+        health_check: "/api/system"
+      # - name: "mongodb"
+      #   internal_ip: "obs.lan"
+      #   internal_port: 27017
+      #   external_domain: "mongodb.nobasura.org"
+      #   health_check: "/"
+      # TICK stack
+      - name: "influxdb2"
+        internal_ip: "obs.lan"
+        internal_port: 8086
+        external_domain: "influxdb2.nobasura.org"
+        health_check: "/health"
+      # Observability apps
+      - name: "beszel"
+        internal_ip: "obs.lan"
+        internal_port: 8090
+        external_domain: "beszel.nobasura.org"
+        health_check: "/api/health"
+      - name: "dozzle"
+        internal_ip: "obs.lan"
+        internal_port: 8080
+        external_domain: "dozzle.nobasura.org"
+        health_check: "/"
+      - name: "gotify"
+        internal_ip: "obs.lan"
+        internal_port: 80
+        external_domain: "gotify.nobasura.org"
+        health_check: "/health"
+      - name: "portainer"
+        internal_ip: "obs.lan"
+        internal_port: 9000
+        external_domain: "portainer.nobasura.org"
+        health_check: "/api/status"
+      - name: "uptime-kuma"
+        internal_ip: "obs.lan"
+        internal_port: 3001
+        external_domain: "uptime-kuma.nobasura.org"
+        health_check: "/"
+
+  - name: "vps"
+    description: "Gateway VPS infrastructure services"
+    services:
+      - name: "midman"
+        internal_ip: "midman"
+        internal_port: 3456
+        external_domain: "midman.nobasura.org"
+        health_check: "/"
+
+# Service access levels for easy management
+# service_access_levels:
+#   basic_user:
+#     - "it-tools"
+#     - "jellyfin"
+#     - "jellyseerr"
+#     - "uptime"
+
+# Authentication and security settings
+# homelab_trusted_networks:
+#   - "10.10.0.0/16" # Homelab internal networks
+#   - "10.100.0.0/16" # Pangolin tunnel networks
+#   - "192.168.0.0/16" # Additional private networks
+
+# Default API response handling
+# api_health:
+#   status: 404

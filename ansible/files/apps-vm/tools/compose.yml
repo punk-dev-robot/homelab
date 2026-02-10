@@ -1,0 +1,6 @@
+include:
+  - it-tools.yml
+  - atuin.yml
+  - firecrawl.yml
+  - enclosed.yml
+  - karakeep.yml

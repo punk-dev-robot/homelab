@@ -1,0 +1,19 @@
+services:
+  deluge:
+    extends:
+      file: ../common.yml
+      service: base # traefik handled by vpn
+    image: linuxserver/deluge:latest
+    container_name: deluge
+    environment:
+      DELUGE_LOGLEVEL: warn #optional
+    volumes:
+      - ${DATA_DIR}/torrents:/data/torrents
+      - $APP_DATA/deluge:/config
+    networks: !reset  # Docker Compose extension - resets inherited networks
+    network_mode: service:gluetun # run on the vpn network
+    depends_on:
+      gluetun:
+        condition: service_healthy
+    labels: # Traefik labels added via glueten
+      - "deunhealth.restart.on.unhealthy=true"

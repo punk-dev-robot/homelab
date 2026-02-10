@@ -1,0 +1,117 @@
+name: authentik
+services:
+  postgresql:
+    image: docker.io/library/postgres:16-alpine
+    container_name: authentik-postgresql
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -d $${POSTGRES_DB} -U $${POSTGRES_USER}"]
+      start_period: 20s
+      interval: 30s
+      retries: 5
+      timeout: 5s
+    volumes:
+      - authentik_db:/var/lib/postgresql/data
+    environment:
+      POSTGRES_PASSWORD: ${AUTHENTIK_PG_PASS}
+      POSTGRES_USER: ${AUTHENTIK_PG_USER:-authentik}
+      POSTGRES_DB: ${AUTHENTIK_PG_DB:-authentik}
+    labels:
+      - "deunhealth.restart.on.unhealthy=true"
+
+  server:
+    image: ghcr.io/goauthentik/server:${AUTHENTIK_VERSION:-2025.10.1}
+    container_name: authentik-server
+    restart: unless-stopped
+    command: server
+    environment:
+      AUTHENTIK_POSTGRESQL__HOST: postgresql
+      AUTHENTIK_POSTGRESQL__USER: ${AUTHENTIK_PG_USER:-authentik}
+      AUTHENTIK_POSTGRESQL__NAME: ${AUTHENTIK_PG_DB:-authentik}
+      AUTHENTIK_POSTGRESQL__PASSWORD: ${AUTHENTIK_PG_PASS}
+      AUTHENTIK_SECRET_KEY: ${AUTHENTIK_SECRET_KEY}
+      AUTHENTIK_ERROR_REPORTING__ENABLED: false
+      AUTHENTIK_DISABLE_UPDATE_CHECK: false
+      AUTHENTIK_DISABLE_STARTUP_ANALYTICS: true
+      AUTHENTIK_AVATARS: initials
+      # Email configuration (using Resend like Pangolin)
+      AUTHENTIK_EMAIL__HOST: smtp.resend.com
+      AUTHENTIK_EMAIL__PORT: 587
+      AUTHENTIK_EMAIL__USERNAME: resend
+      AUTHENTIK_EMAIL__PASSWORD: ${RESEND_API_KEY}
+      AUTHENTIK_EMAIL__USE_TLS: true
+      AUTHENTIK_EMAIL__FROM: auth@nobasura.org
+    volumes:
+      - ${APP_DATA}/authentik/media:/media
+      - ./config/custom-templates:/templates
+    ports:
+      - "9000:9000"
+      - "9443:9443"
+    networks:
+      - default
+      - pangolin
+    depends_on:
+      - postgresql
+    labels:
+      - "deunhealth.restart.on.unhealthy=true"
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          "curl -f http://localhost:9000/-/health/live/ || exit 1",
+        ]
+      start_period: 90s
+      interval: 30s
+      timeout: 30s
+      retries: 3
+
+  worker:
+    image: ghcr.io/goauthentik/server:${AUTHENTIK_VERSION:-2025.10.1}
+    container_name: authentik-worker
+    restart: unless-stopped
+    command: worker
+    environment:
+      AUTHENTIK_POSTGRESQL__HOST: postgresql
+      AUTHENTIK_POSTGRESQL__USER: ${AUTHENTIK_PG_USER:-authentik}
+      AUTHENTIK_POSTGRESQL__NAME: ${AUTHENTIK_PG_DB:-authentik}
+      AUTHENTIK_POSTGRESQL__PASSWORD: ${AUTHENTIK_PG_PASS}
+      AUTHENTIK_SECRET_KEY: ${AUTHENTIK_SECRET_KEY}
+      AUTHENTIK_ERROR_REPORTING__ENABLED: false
+      AUTHENTIK_DISABLE_UPDATE_CHECK: true
+      AUTHENTIK_DISABLE_STARTUP_ANALYTICS: true
+      # Email configuration (using Resend like Pangolin)
+      AUTHENTIK_EMAIL__HOST: smtp.resend.com
+      AUTHENTIK_EMAIL__PORT: 587
+      AUTHENTIK_EMAIL__USERNAME: resend
+      AUTHENTIK_EMAIL__PASSWORD: ${RESEND_API_KEY}
+      AUTHENTIK_EMAIL__USE_TLS: true
+      AUTHENTIK_EMAIL__FROM: auth@nobasura.org
+    volumes:
+      - ${APP_DATA}/authentik/media:/media
+      - ./config/custom-templates:/templates
+      - ${APP_DATA}/authentik/certs:/certs
+    depends_on:
+      - postgresql
+    labels:
+      - "deunhealth.restart.on.unhealthy=true"
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          "ak healthcheck",
+        ]
+      start_period: 90s
+      interval: 30s
+      timeout: 30s
+      retries: 3
+
+volumes:
+  authentik_db:
+    driver: local
+
+networks:
+  default:
+    name: authentik
+  pangolin:
+    external: true
+    name: pangolin

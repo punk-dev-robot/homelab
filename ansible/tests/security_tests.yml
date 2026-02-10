@@ -1,0 +1,25 @@
+---
+# Security Validation Tests
+# Production-grade security test suite using standardized patterns
+
+- name: Test invalid bypass key is blocked
+  include_tasks: security_test_invalid_key.yml
+  loop: "{{ test_services.auth_bypass }}"
+  loop_control:
+    loop_var: target_service
+
+- name: Test no bypass header is blocked
+  include_tasks: security_test_no_header.yml
+  loop: "{{ test_services.auth_bypass }}"
+  loop_control:
+    loop_var: target_service
+
+- name: Test non-bypass services require authentication
+  include_tasks: security_test_non_bypass.yml
+  loop: "{{ test_services.sso_protected }}"
+  loop_control:
+    loop_var: target_service
+
+- name: Authentik Authentication Service Security Tests
+  include_tasks: authentik_auth_tests.yml
+  tags: ["security", "authentik"]

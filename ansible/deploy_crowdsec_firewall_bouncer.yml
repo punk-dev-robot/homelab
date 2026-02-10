@@ -1,0 +1,81 @@
+---
+# Deploy CrowdSec Firewall Bouncer to VPS
+# Adds network-level IP blocking via iptables for SSH protection
+# Complements existing Traefik plugin bouncer
+
+- name: Deploy CrowdSec Firewall Bouncer
+  hosts: gateway
+  become: true
+  gather_facts: true
+
+  handlers:
+    - name: Reload systemd
+      systemd:
+        daemon_reload: true
+
+    - name: Restart crowdsec-firewall-bouncer
+      systemd:
+        name: crowdsec-firewall-bouncer
+        state: restarted
+
+  pre_tasks:
+    - name: Verify CrowdSec Docker container is running
+      community.docker.docker_container_info:
+        name: crowdsec
+      register: crowdsec_status
+      failed_when: not crowdsec_status.exists or crowdsec_status.container.State.Status != "running"
+
+    - name: Display CrowdSec container status
+      debug:
+        msg: "CrowdSec container is running and ready for firewall bouncer integration"
+
+  roles:
+    - crowdsec_firewall_bouncer
+
+  post_tasks:
+    - name: Read API key from server
+      slurp:
+        src: "/etc/crowdsec/bouncers/crowdsec-firewall-bouncer-key"
+      register: api_key_file
+
+    - name: Verify firewall bouncer is working
+      uri:
+        url: "http://localhost:8080/v1/decisions"
+        method: GET
+        headers:
+          X-Api-Key: "{{ api_key_file.content | b64decode | trim }}"
+        return_content: true
+      register: api_test
+      failed_when: false
+
+    - name: Display API connectivity test
+      debug:
+        msg: "CrowdSec LAPI connectivity: {{ 'Success' if api_test.status == 200 else 'Failed' }}"
+
+    - name: Show bouncer status in CrowdSec
+      community.docker.docker_container_exec:
+        container: crowdsec
+        command: cscli bouncers list
+      register: bouncer_list
+
+    - name: Display registered bouncers
+      debug:
+        msg: "{{ bouncer_list.stdout_lines }}"
+
+    - name: Provide testing instructions
+      debug:
+        msg: |
+          CrowdSec Firewall Bouncer has been deployed successfully!
+
+          Testing Instructions:
+          1. Monitor logs: journalctl -fu crowdsec-firewall-bouncer
+          2. Check iptables rules: iptables -L INPUT -n | grep crowdsec
+          3. View blocked IPs: ipset list crowdsec-blacklists
+          4. Test SSH brute force detection (from another IP)
+          5. Verify blocked IPs appear in both Traefik logs and iptables
+
+          The bouncer will:
+          - Block SSH brute force attacks at network level
+          - Work alongside the existing Traefik plugin bouncer
+          - Use ipset for efficient IP blocking
+          - Log all blocked connections with "CrowdSec SSH Block" prefix

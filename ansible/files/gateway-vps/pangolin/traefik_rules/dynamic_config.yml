@@ -1,0 +1,146 @@
+http:
+  middlewares:
+    redirect-to-https:
+      redirectScheme:
+        scheme: https
+
+    crowdsec-bouncer:
+      plugin:
+        crowdsec-bouncer:
+          enabled: true
+          logLevel: "INFO"
+          crowdsecMode: "live"
+          crowdsecAppsecEnabled: false
+          crowdsecAppsecHost: "crowdsec:7422"
+          crowdsecAppsecFailureBlock: true
+          crowdsecAppsecUnreachableBlock: true
+          crowdsecLapiKeyFile: "/secrets/crowdsec-api-key"
+          crowdsecLapiHost: "crowdsec:8080"
+          crowdsecLapiScheme: "http"
+          crowdsecCapiMachineId: ""
+          crowdsecCapiPassword: ""
+          crowdsecCapiScenarios:
+            - "crowdsecurity/http-sensitive-files"
+            - "crowdsecurity/http-crawl-non_statics"
+            - "crowdsecurity/http-enum"
+            - "crowdsecurity/http-path-traversal-probing"
+            - "crowdsecurity/http-xss-probing"
+            - "crowdsecurity/http-generic-bf"
+          forwardedHeadersCustomName: ""
+          # OVERWRITTEN BY JINJA2 TEMPLATE: roles/docker/templates/dynamic_config.yml.j2
+          # Admin IPs sourced from 1Password at deploy time (ADMIN_IP_CONFIG item)
+          clientTrustedIPs:
+            - "10.0.0.0/8"
+            - "172.16.0.0/12"
+            - "192.168.0.0/16"
+            - "{{ crowdsec_config.admin_ip }}/32"
+            - "{{ crowdsec_config.admin_isp_cidr }}"
+          forwardedHeadersTrustedIPs:
+            - "10.0.0.0/8"
+            - "172.16.0.0/12"
+            - "192.168.0.0/16"
+            - "{{ crowdsec_config.admin_ip }}/32"
+            - "{{ crowdsec_config.admin_isp_cidr }}"
+
+
+  routers:
+    # HTTP to HTTPS redirect router
+    main-app-router-redirect:
+      rule: "Host(`pangolin.nobasura.org`)"
+      service: next-service
+      entryPoints:
+        - web
+      middlewares:
+        - redirect-to-https
+
+    next-router:
+      rule: "Host(`pangolin.nobasura.org`) && !PathPrefix(`/api/v1`)"
+      service: next-service
+      entryPoints:
+        - websecure
+      middlewares:
+        - crowdsec-bouncer
+      tls:
+        certResolver: letsencrypt
+        domains:
+          - main: "nobasura.org"
+            sans:
+              - "*.nobasura.org"
+
+    api-router:
+      rule: "Host(`pangolin.nobasura.org`) && PathPrefix(`/api/v1`)"
+      service: api-service
+      entryPoints:
+        - websecure
+      middlewares:
+        - crowdsec-bouncer
+      tls:
+        certResolver: letsencrypt
+
+    int-api-router-redirect:
+      rule: "Host(`api.nobasura.org`)"
+      service: integration-api-service
+      entryPoints:
+        - web
+      middlewares:
+        - redirect-to-https
+
+    int-api-router:
+      rule: "Host(`api.nobasura.org`)"
+      service: integration-api-service
+      entryPoints:
+        - websecure
+      middlewares:
+        - crowdsec-bouncer
+      tls:
+        certResolver: letsencrypt
+
+
+    ws-router:
+      rule: "Host(`pangolin.nobasura.org`)"
+      service: api-service
+      entryPoints:
+        - websecure
+      tls:
+        certResolver: letsencrypt
+
+    # Authentik routers
+    auth-router-redirect:
+      rule: "Host(`auth.nobasura.org`)"
+      service: authentik-service
+      entryPoints:
+        - web
+      middlewares:
+        - redirect-to-https
+
+    auth-router:
+      rule: "Host(`auth.nobasura.org`)"
+      service: authentik-service
+      entryPoints:
+        - websecure
+      middlewares:
+        - crowdsec-bouncer
+      tls:
+        certResolver: letsencrypt
+
+  services:
+    next-service:
+      loadBalancer:
+        servers:
+          - url: "http://pangolin:3002"
+
+    api-service:
+      loadBalancer:
+        servers:
+          - url: "http://pangolin:3000"
+
+    integration-api-service:
+      loadBalancer:
+        servers:
+          - url: "http://pangolin:3003"
+
+    authentik-service:
+      loadBalancer:
+        servers:
+          - url: "http://authentik-server:9000"
+

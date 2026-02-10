@@ -1,0 +1,72 @@
+services:
+  prometheus:
+    extends:
+      file: ../common.yml
+      service: base
+    container_name: prometheus
+    image: prom/prometheus
+    ports:
+      - 9090:9090
+    volumes:
+      - ./prometheus-config.yml:/etc/prometheus/prometheus.yml
+      - prometheus-data:/prometheus
+    labels:
+      - com.centurylinklabs.watchtower.monitor-only
+
+  node-exporter:
+    extends:
+      file: ../common.yml
+      service: base
+    image: prom/node-exporter:latest
+    container_name: node_exporter
+    expose:
+      - 9100
+
+  cadvisor:
+    extends:
+      file: ../common.yml
+      service: base
+    image: gcr.io/cadvisor/cadvisor:latest
+    container_name: cadvisor
+    volumes:
+      - /:/rootfs:ro
+      - /var/run:/var/run:rw
+      - /sys:/sys:ro
+      - /var/lib/docker/:/var/lib/docker:ro
+      - /dev/disk:/dev/disk:ro
+    expose:
+      - 8080
+
+  pbs-exporter:
+    extends:
+      file: ../common.yml
+      service: base
+    image: ghcr.io/natrontech/pbs-exporter:latest
+    container_name: pbs-exporter
+    user: "65534"
+    ports:
+      - "10019:10019"
+    environment:
+      - PBS_LOGLEVEL=debug
+      - PBS_ENDPOINT=https://10.10.10.30:8007
+      - PBS_INSECURE=true
+      # - PBS_USERNAME=pbs-expoerter@pbs
+      # - PBS_API_TOKEN_NAME=pbs-exporter
+      - PBS_API_TOKEN=${PBS_API_TOKEN}
+
+  pihole-exporter:
+    extends:
+      file: ../common.yml
+      service: base
+    image: ekofr/pihole-exporter:latest
+    container_name: pihole-exporter
+    ports:
+      - 9617:9617
+    environment:
+      - LOG_LEVEL=warn
+      - PIHOLE_HOSTNAME=10.10.101.53,10.10.10.53,10.10.40.53,10.10.60.53
+      - PIHOLE_API_TOKEN=${PIHOLE_API_TOKEN}
+
+volumes:
+  prometheus-data:
+    name: prometheus-data

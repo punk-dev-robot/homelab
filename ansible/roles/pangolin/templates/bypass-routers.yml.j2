@@ -1,0 +1,20 @@
+http:
+  routers:
+{% for service in pangolin_auth_bypass_services %}
+    {{ service.name }}-mobile-bypass:
+      rule: "Host(`{{ service.name }}.{{ organization_domain }}`) && Header(`{{ pangolin_auth_bypass_header }}`, `{{ auth_bypass_key }}`)"
+      priority: {{ pangolin_auth_bypass_priority }}
+      service: "{{ service.name }}-direct"
+      entryPoints:
+        - websecure
+      tls:
+        certResolver: letsencrypt
+{% endfor %}
+
+  services:
+{% for service in pangolin_auth_bypass_services %}
+    {{ service.name }}-direct:
+      loadBalancer:
+        servers:
+          - url: "{{ service.internal_url }}"
+{% endfor %}

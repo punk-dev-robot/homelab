@@ -1,0 +1,18 @@
+services:
+  graylog-mongodb:
+    image: mongo:6.0.18
+    container_name: graylog-mongodb
+    extends:
+      file: common.yml
+      service: graylog-base
+    ports:
+      - 27017:27017
+    volumes:
+      - graylog-mongodb-data:/data/db
+      - graylog-mongodb-config:/data/configdb
+
+volumes:
+  graylog-mongodb-data:
+    name: graylog-mongodb-data
+  graylog-mongodb-config:
+    name: graylog-mongodb-config

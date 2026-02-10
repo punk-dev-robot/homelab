@@ -1,0 +1,20 @@
+services:
+  base:
+    security_opt:
+      - no-new-privileges:true
+    restart: unless-stopped
+    environment:
+      - PUID=$PUID
+      - PGID=$PGID
+      - TZ=$TZ
+      - UMASK=$UMASK
+      - LOG_LEVEL=$LOG_LEVEL
+    volumes:
+      - /etc/localtime:/etc/localtime:ro
+  socket-base:
+    networks:
+      - socket_proxy
+    environment:
+      - DOCKER_HOST=tcp://socket-proxy:2375
+    depends_on:
+      - socket-proxy

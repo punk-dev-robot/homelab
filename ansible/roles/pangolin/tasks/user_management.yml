@@ -1,0 +1,129 @@
+---
+# Pangolin User Management and Authentication Tasks
+# Uses built-in Admin and Member roles only
+
+- name: Get current roles in organization
+  uri:
+    url: "{{ pangolin_api_base }}/v1/org/{{ organization_id }}/roles"
+    method: GET
+    headers:
+      Authorization: "Bearer {{ pangolin_root_key }}"
+    validate_certs: false
+    status_code: [200]
+  register: current_roles_response
+
+- name: Extract built-in role information
+  set_fact:
+    admin_role: "{{ current_roles_response.json.data.roles | selectattr('name', 'equalto', 'Admin') | first }}"
+    member_role: "{{ current_roles_response.json.data.roles | selectattr('name', 'equalto', 'Member') | first }}"
+
+- name: Display role management status
+  debug:
+    msg: |
+      🎯 ROLE MANAGEMENT STATUS:
+
+      Using built-in roles:
+      - Admin: Found (ID: {{ admin_role.roleId }}) - {{ admin_role.description }}
+      - Member: Found (ID: {{ member_role.roleId }}) - {{ member_role.description }}
+
+      ✅ Admin role provides automatic access to ALL resources
+      📋 Member role requires explicit resource assignment
+
+- name: Store role IDs for user creation
+  set_fact:
+    admin_role_id: "{{ admin_role.roleId }}"
+    member_role_id: "{{ member_role.roleId }}"
+
+- name: Create kuba admin user
+  uri:
+    url: "{{ pangolin_api_base }}/v1/org/{{ organization_id }}/user"
+    method: PUT
+    headers:
+      Authorization: "Bearer {{ pangolin_root_key }}"
+      Content-Type: "application/json"
+    body_format: json
+    body:
+      email: "{{ admin_user_email | default('kuba@homelab.local') }}"
+      username: "{{ admin_username | default('kuba') }}"
+      name: "{{ admin_user_name | default('Kuba') }}"
+      type: "internal"
+      idpId: 0
+      roleId: "{{ admin_role_id | int }}"
+    validate_certs: false
+    status_code: [200, 201, 409]  # 409 if user already exists
+  register: admin_user_creation
+  when:
+    - organization_id is defined
+    - admin_role_id is defined
+  failed_when: false
+
+- name: Display user creation status
+  debug:
+    msg: |
+      🔐 ADMIN USER CREATION:
+      - Username: {{ admin_username | default('kuba') }}
+      - Email: {{ admin_user_email | default('kuba@homelab.local') }}
+      - Role: Admin ({{ admin_role_id | default('pending') }})
+      - Status: {{
+          'Created' if admin_user_creation.status is defined and admin_user_creation.status in [200, 201]
+          else 'Already exists' if admin_user_creation.status is defined and admin_user_creation.status == 409
+          else 'Failed' if admin_user_creation.status is defined
+          else 'Skipped - prerequisites missing'
+        }}
+
+      {% if admin_user_creation.status is defined and admin_user_creation.status in [200, 201, 409] %}
+      ✅ Admin user ready! Admin role gives access to ALL resources automatically.
+      {% else %}
+      ❌ Manual user creation still required in Pangolin dashboard
+      {% endif %}
+
+- name: Create non-admin users
+  uri:
+    url: "{{ pangolin_api_base }}/v1/org/{{ organization_id }}/user"
+    method: PUT
+    headers:
+      Authorization: "Bearer {{ pangolin_root_key }}"
+      Content-Type: "application/json"
+    body_format: json
+    body:
+      email: "{{ user.email }}"
+      username: "{{ user.username }}"
+      name: "{{ user.name }}"
+      type: "internal"
+      idpId: 0
+      roleId: "{{ member_role_id | int }}"
+    validate_certs: false
+    status_code: [200, 201, 409]  # 409 if user already exists
+  register: non_admin_user_creation
+  loop: "{{ non_admin_users | default([]) }}"
+  loop_control:
+    loop_var: user
+    label: "{{ user.username }}"
+  when:
+    - organization_id is defined
+    - member_role_id is defined
+  failed_when: false
+
+- name: Display non-admin user creation status
+  debug:
+    msg: |
+      👥 NON-ADMIN USERS CREATED:
+      {% for user in non_admin_users | default([]) %}
+      - {{ user.username }} ({{ user.email }}) - {{ user.role }}
+        Services: {{ user.allowed_services | join(', ') }}
+        Note: Member role requires explicit resource assignment
+      {% endfor %}
+  when: non_admin_users is defined and non_admin_users | length > 0
+
+- name: Create authentication rules for all resources
+  include_tasks: resource_authentication.yml
+  vars:
+    resource_id: "{{ resource_result.json.data.id }}"
+    resource_name: "{{ resource_result.json.data.name }}"
+  loop: "{{ all_created_resources | default([]) }}"
+  loop_control:
+    loop_var: resource_result
+    label: "{{ resource_result.json.data.name }}"
+  when:
+    - resource_result.json.data.id is defined
+    - resource_result.status in [200, 201]

@@ -1,0 +1,12 @@
+services:
+  flaresolverr:
+    extends:
+      file: ../common.yml
+      service: base
+    image: flaresolverr/flaresolverr:latest
+    container_name: flaresolverr
+    environment:
+      LOG_HTML: false
+      # CAPTCHA_SOLVER: none
+    ports:
+      - 8191:8191

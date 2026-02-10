@@ -1,0 +1,4 @@
+# vim: set ft=ansible.yaml:
+skip_list:
+  - fqcn[action-core]
+  - name[missing]

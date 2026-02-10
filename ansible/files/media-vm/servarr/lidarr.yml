@@ -1,0 +1,12 @@
+services:
+  lidarr:
+    extends:
+      file: ../common.yml
+      service: base
+    image: linuxserver/lidarr:latest
+    container_name: lidarr
+    ports:
+      - "8686:8686"
+    volumes:
+      - ${DATA_DIR}:/data
+      - ${APP_DATA}/lidarr:/config

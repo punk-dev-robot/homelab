@@ -1,0 +1,27 @@
+---
+# Functionality test: Auth bypass with valid key should work
+# Production-grade test using standardized components
+
+- name: Set test context
+  set_fact:
+    test_name: "Functionality: Auth bypass {{ target_service.name }} works"
+    test_start_time: "{{ ansible_date_time.epoch }}"
+
+- name: Execute HTTP test with valid bypass key
+  include_tasks: common/test_base.yml
+  vars:
+    test_config:
+      url: "https://{{ target_service.name }}.{{ organization_domain }}"
+      headers: "{{ {pangolin_auth_bypass_header: bypass_key} }}"
+      timeout: "{{ test_categories.functionality.timeout }}"
+      critical: "{{ test_categories.functionality.critical }}"
+      expected_statuses: [200, 307]  # 200=direct access, 307=jellyseerr app login
+      validation_logic: "{{
+        http_result.status is defined and
+        http_result.status in [200, 307]
+      }}"
+    test_expected: "Bypass works correctly (200=direct access, 307=app login)"
+    test_details: "Service: {{ target_service.name }}, Internal: {{ target_service.internal_url }}"
+
+- name: Record bypass functionality result
+  include_tasks: common/test_recorder.yml

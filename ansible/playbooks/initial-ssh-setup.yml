@@ -1,0 +1,19 @@
+---
+- name: Initial SSH Setup - Root Key Only
+  hosts: px-cpu
+  become: yes
+  gather_facts: no
+  vars:
+    # Force password authentication for this initial run only
+    ansible_ssh_common_args: '-o PreferredAuthentications=password -o PubkeyAuthentication=no -o PasswordAuthentication=yes -o StrictHostKeyChecking=no'
+
+  tasks:
+    # ============================================
+    # 1. Set up SSH key for root user (for Ansible)
+    # ============================================
+    - name: Set up SSH key for root user
+      authorized_key:
+        user: root
+        key: "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIPXq3oHq10bmPW3YL3OvVGd7zF0NsLzxqUgEGups7b4w root@1password"
+        state: present
+      tags: [ssh]

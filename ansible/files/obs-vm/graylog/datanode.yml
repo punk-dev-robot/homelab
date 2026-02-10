@@ -1,0 +1,30 @@
+services:
+  graylog-datanode:
+    image: graylog/graylog-datanode:6.1
+    container_name: graylog-datanode
+    hostname: datanode
+    extends:
+      file: common.yml
+      service: graylog-base
+    environment:
+      GRAYLOG_DATANODE_NODE_ID_FILE: /var/lib/graylog-datanode/node-id
+      GRAYLOG_DATANODE_PASSWORD_SECRET: ${DATANODE_PASSWORD_SECRET}
+      GRAYLOG_DATANODE_ROOT_PASSWORD_SHA2: ${DATANODE_ROOT_PASSWORD_SHA2}
+      GRAYLOG_DATANODE_MONGODB_URI: mongodb://graylog-mongodb:27017/graylog
+    ulimits:
+      memlock:
+        hard: -1
+        soft: -1
+      nofile:
+        soft: 65536
+        hard: 65536
+    ports:
+      - 8999:8999/tcp
+      - 9200:9200/tcp
+      - 9300:9300/tcp
+    volumes:
+      - graylog-datanode:/var/lib/graylog-datanode
+
+volumes:
+  graylog-datanode:
+    name: graylog-datanode-data

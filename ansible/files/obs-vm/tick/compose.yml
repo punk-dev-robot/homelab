@@ -1,0 +1,7 @@
+networks:
+  default:
+    name: obs-shared
+    external: true
+
+include:
+  - influxdb2.yml

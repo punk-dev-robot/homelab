@@ -1,0 +1,55 @@
+api:
+  insecure: true
+  dashboard: true
+
+providers:
+  http:
+    endpoint: "http://pangolin:3001/api/v1/traefik-config"
+    pollInterval: "5s"
+  file:
+    directory: "/rules"
+    watch: true
+
+experimental:
+  plugins:
+    badger:
+      moduleName: "github.com/fosrl/badger"
+      version: "v1.2.0"
+    crowdsec-bouncer:
+      moduleName: "github.com/maxlerebourg/crowdsec-bouncer-traefik-plugin"
+      version: "v1.3.5"
+
+log:
+  level: "INFO"
+  format: "common"
+
+accessLog:
+  filePath: "/var/log/traefik/access.log"
+  format: "json"
+
+certificatesResolvers:
+  letsencrypt:
+    acme:
+      dnsChallenge:
+        provider: "cloudflare"
+        propagation:
+          delayBeforeChecks: 60s
+          disableANSChecks: true
+      email: "letsencrypt.a0f@nobasura.org"
+      storage: "/letsencrypt/acme.json"
+      caServer: "https://acme-v02.api.letsencrypt.org/directory"
+
+entryPoints:
+  web:
+    address: ":80"
+  websecure:
+    address: ":443"
+    transport:
+      respondingTimeouts:
+        readTimeout: "30m"
+    http:
+      tls:
+        certResolver: "letsencrypt"
+
+serversTransport:
+  insecureSkipVerify: true

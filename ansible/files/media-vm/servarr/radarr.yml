@@ -1,0 +1,15 @@
+services:
+  radarr:
+    image: linuxserver/radarr
+    container_name: radarr
+    extends:
+      file: ../common.yml
+      service: base
+    ports:
+      - "7878:7878"
+    volumes:
+      - ${DATA_DIR}:/data
+      - ${APP_DATA}/radarr/config:/config
+      # for arr-scripts https://github.com/RandomNinjaAtk/arr-scripts/tree/main/radarr
+      - ${APP_DATA}/radarr/custom-services.d:/custom-services.d
+      - ${APP_DATA}/radarr/custom-cont-init.d:/custom-cont-init.d

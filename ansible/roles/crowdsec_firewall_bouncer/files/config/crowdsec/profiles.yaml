@@ -1,0 +1,17 @@
+# DEPLOYED VIA JINJA2 TEMPLATE: templates/config/crowdsec/profiles.yaml.j2
+# Admin IPs sourced from 1Password at deploy time (ADMIN_IP_CONFIG item)
+name: whitelist_admin_ips
+filters:
+  - 'Alert.GetScope() == "Ip" && (Alert.Source.IP in ["{{ crowdsec_config.admin_ip }}", "{{ crowdsec_config.admin_secondary_ip }}", "127.0.0.1", "::1"] || Alert.Source.IP startsWith "{{ isp_prefix }}" || Alert.Source.IP startsWith "10.100." || Alert.Source.IP startsWith "172.")'
+decisions: [] # No decisions = no ban
+on_success: break
+
+---
+# SSH protection for non-whitelisted IPs
+name: ssh_protection
+filters:
+  - Alert.Remediation == true && Alert.GetScope() == "Ip"
+decisions:
+  - type: ban
+    duration: 1h # Short duration for testing
+on_success: break

@@ -1,0 +1,16 @@
+- name: Docker setup
+  include_tasks: setup.yml
+  when: docker_setup
+
+- name: Deploying stack
+  include_tasks: deploy_stack.yml
+  when: docker_deploy
+  loop: "{{ stacks }}"
+  loop_control:
+    loop_var: cur_stack
+
+- name: Deploying newt tunnel stack
+  include_tasks: deploy_stack.yml
+  when: docker_deploy and deploy_tunnels | default(false) and pangolin_newt_enabled | default(false)
+  vars:
+    cur_stack: newt

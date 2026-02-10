@@ -1,0 +1,20 @@
+services:
+  grafana:
+    extends:
+      file: ../common.yml
+      service: base
+    image: grafana/grafana-enterprise
+    container_name: grafana
+    environment:
+      - GF_ANALYTICS_REPORTING_ENABLED=false
+      - GF_METRICS_ENABLED=false
+    ports:
+      - "3000:3000"
+    volumes:
+      - grafana-data:/var/lib/grafana
+    labels:
+      - com.centurylinklabs.watchtower.monitor-only
+
+volumes:
+  grafana-data:
+    name: grafana-data

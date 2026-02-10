@@ -1,0 +1,42 @@
+services:
+  atuin:
+    extends:
+      file: ../common.yml
+      service: base
+    image: ghcr.io/atuinsh/atuin:18.3.0
+    container_name: atuin
+    command: ["server", "start"]
+    environment:
+      ATUIN_HOST: 0.0.0.0
+      ATUIN_PORT: 8888
+      ATUIN_OPEN_REGISTRATION: false
+      ATUIN_DB_URI: postgres://${ATUIN_DB_USER}:${ATUIN_DB_PASS}@atuin_db:5432/atuin
+    ports:
+      - "12321:8888"
+    depends_on:
+      - atuin_db
+
+  atuin_db:
+    extends:
+      file: ../common.yml
+      service: base
+    image: postgres:16
+    container_name: atuin_db
+    environment:
+      POSTGRES_DB: atuin
+      POSTGRES_USER: ${ATUIN_DB_USER}
+      POSTGRES_PASSWORD: ${ATUIN_DB_PASS}
+    volumes:
+      - atuin_postgres_data:/var/lib/postgresql/data
+    labels:
+      - "deunhealth.restart.on.unhealthy=true"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -d atuin -U ${ATUIN_DB_USER}"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+
+volumes:
+  atuin_postgres_data:
+    name: atuin_postgres_data
+    driver: local

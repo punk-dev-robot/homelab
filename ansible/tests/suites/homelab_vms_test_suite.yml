@@ -1,0 +1,176 @@
+---
+# Homelab VMs Test Suite
+# Production-grade test suite for Homelab VM service availability
+# Tests both direct (.lan) and Caddy proxy (.lab.nobasura.org) access methods
+# Usage:
+#   ansible-playbook test_homelab_vms.yml                      # Full test suite
+#   ansible-playbook test_homelab_vms.yml --tags smoke        # Quick smoke tests
+#   ansible-playbook test_homelab_vms.yml --tags direct       # Direct .lan access only
+#   ansible-playbook test_homelab_vms.yml --tags proxy        # Caddy proxy .lab access only
+
+- name: Homelab VMs Test Suite
+  hosts: localhost
+  gather_facts: true
+  connection: local
+  vars:
+    # Homelab VM test configuration
+    homelab_services:
+      apps-vm:
+        host: "apps.lan"
+        proxy_domain: "apps.lab.nobasura.org"
+        services:
+          - name: "homepage"
+            port: 3000
+            path: "/"
+            expected_status: 200
+          - name: "atuin"
+            port: 8888
+            path: "/"
+            expected_status: 200
+          - name: "neo4j"
+            port: 7474
+            path: "/browser/"
+            expected_status: 200
+      media-vm:
+        host: "media.lan"
+        proxy_domain: "media.lab.nobasura.org"
+        services:
+          - name: "jellyfin"
+            port: 8096
+            path: "/"
+            expected_status: 200
+          - name: "sonarr"
+            port: 8989
+            path: "/"
+            expected_status: 200
+          - name: "radarr"
+            port: 7878
+            path: "/"
+            expected_status: 200
+      obs-vm:
+        host: "obs.lan"
+        proxy_domain: "obs.lab.nobasura.org"
+        services:
+          - name: "grafana"
+            port: 3000
+            path: "/"
+            expected_status: 200
+          - name: "dozzle"
+            port: 8080
+            path: "/"
+            expected_status: 200
+          - name: "uptime-kuma"
+            port: 3001
+            path: "/"
+            expected_status: 200
+
+  pre_tasks:
+    - name: Display test suite information
+      debug:
+        msg: |
+          🏠 HOMELAB VMS TEST SUITE
+          =========================
+          Test Categories:
+            • Direct Access Tests (.lan addresses)
+            • Proxy Access Tests (.lab.nobasura.org via Caddy/OpnSense)
+            • Container Health Tests
+
+          Available Tags:
+            • smoke: Quick validation (~30s)
+            • direct: Direct .lan access only
+            • proxy: Caddy proxy .lab access only
+
+          Target Infrastructure:
+            • Apps VM: {{ homelab_services['apps-vm'].services | length }} services
+            • Media VM: {{ homelab_services['media-vm'].services | length }} services
+            • Obs VM: {{ homelab_services['obs-vm'].services | length }} services
+
+  tasks:
+    - name: Initialize test framework
+      set_fact:
+        test_results: []
+        test_summary:
+          total: 0
+          passed: 0
+          failed: 0
+          critical_failures: []
+        start_time: "{{ ansible_date_time.epoch }}"
+
+    - name: Test direct VM access (.lan addresses)
+      include_tasks: ../homelab/test_direct_access.yml
+      loop: "{{ homelab_services.keys() | list }}"
+      loop_control:
+        loop_var: vm_name
+      tags: ["direct", "smoke", "always"]
+
+    - name: Test Caddy proxy access (.lab.nobasura.org)
+      include_tasks: ../homelab/test_proxy_access.yml
+      loop: "{{ homelab_services.keys() | list }}"
+      loop_control:
+        loop_var: vm_name
+      tags: ["proxy", "always"]
+
+    - name: Generate final test report
+      debug:
+        msg: |
+
+          🏠 HOMELAB VMS TEST RESULTS
+          ===========================
+          Total Tests: {{ test_summary.total }}
+          Passed: {{ test_summary.passed }}
+          Failed: {{ test_summary.failed }}
+          Duration: {{ ((ansible_date_time.epoch | int) - (start_time | int)) }}s
+
+          {% if test_summary.failed > 0 %}
+          ❌ FAILED TESTS:
+          {% for result in test_results %}
+          {% if result.status == 'FAIL' %}
+          {{ '🚨' if result.critical else '⚠️' }} {{ result.name }}
+            Expected: {{ result.expected }}
+            Actual: {{ result.actual }}
+            {% if result.error %}Error: {{ result.error }}{% endif %}
+          {% endif %}
+          {% endfor %}
+          {% endif %}
+
+          {% if test_summary.critical_failures | length > 0 %}
+          🚨 CRITICAL FAILURES DETECTED
+          Infrastructure issues require attention!
+          {% endif %}
+
+  post_tasks:
+    - name: Test completion summary
+      debug:
+        msg: |
+
+          🎯 HOMELAB VMS TEST COMPLETED
+          =============================
+          {% if test_summary.critical_failures | length == 0 %}
+          ✅ PASS: Homelab VMs are healthy
+          {% else %}
+          ❌ FAIL: Critical issues detected in homelab infrastructure
+          {% endif %}
+
+          Results: {{ test_summary.passed }}/{{ test_summary.total }} passed
+          Duration: {{ ((ansible_date_time.epoch | int) - (start_time | default(ansible_date_time.epoch) | int)) }}s
+
+          {% if test_summary.failed > 0 %}
+          Failed Tests: {{ test_summary.failed }}
+          {% if test_summary.critical_failures | length > 0 %}
+          Critical Failures: {{ test_summary.critical_failures | join(', ') }}
+          {% endif %}
+          {% endif %}
+
+    - name: Save test results
+      copy:
+        content: |
+          {
+            "timestamp": "{{ ansible_date_time.iso8601 }}",
+            "duration_seconds": {{ ((ansible_date_time.epoch | int) - (start_time | default(ansible_date_time.epoch) | int)) }},
+            "summary": {{ test_summary | default({}) | to_json }},
+            "results": {{ test_results | default([]) | to_json }},
+            "test_type": "homelab_vms"
+          }
+        dest: "/tmp/homelab_vms_test_results.json"
+        mode: "0644"
+      tags: ["always"]

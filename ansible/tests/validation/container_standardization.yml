@@ -1,0 +1,50 @@
+---
+- name: Validate Container Standardization
+  hosts: obs-vm,apps-vm,media-vm
+  gather_facts: false
+  tasks:
+    - name: Find services with restart policies that should extend common.yml
+      shell: |
+        set -o pipefail
+        cd /opt/docker
+        find ./compose -name "*.yml" -type f 2>/dev/null | xargs grep -l "restart:" | xargs grep -L "extends:" | grep -v common.yml || true
+      args:
+        executable: /bin/bash
+      register: services_with_restart_no_extends
+      failed_when: services_with_restart_no_extends.stdout != ""
+      changed_when: false
+    - name: Find services extending base/socket-base that still have restart policies
+      shell: |
+        set -o pipefail
+        cd /opt/docker
+        find ./compose -name "*.yml" -type f 2>/dev/null | xargs grep -l "extends:" | xargs grep -l "restart:" | grep -v common.yml || true
+      args:
+        executable: /bin/bash
+      register: extending_services_with_restart
+      failed_when: extending_services_with_restart.stdout != ""
+      changed_when: false
+    - name: Verify no containers are in restart loops
+      shell: |
+        set -o pipefail
+        docker ps -a --filter 'status=restarting' | tail -n +2 | wc -l
+      args:
+        executable: /bin/bash
+      register: restart_loops
+      failed_when: restart_loops.stdout != "0"
+      changed_when: false
+    - name: Count total running containers
+      shell: |
+        set -o pipefail
+        docker ps --filter 'status=running' | wc -l
+      args:
+        executable: /bin/bash
+      register: running_containers
+      changed_when: false
+    - name: Display validation results
+      debug:
+        msg: |
+          Validation Results for {{ inventory_hostname }}:
+          - Services with restart but no extends: {{ services_with_restart_no_extends.stdout_lines | length }}
+          - Extending services with restart: {{ extending_services_with_restart.stdout_lines | length }}
+          - Containers in restart loops: {{ restart_loops.stdout }}
+          - Total running containers: {{ (running_containers.stdout | int) - 1 }}

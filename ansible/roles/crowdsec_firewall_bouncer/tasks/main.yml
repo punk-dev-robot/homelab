@@ -1,0 +1,135 @@
+---
+# CrowdSec Firewall Bouncer Setup Tasks
+# Provides network-level IP blocking via iptables/ipset
+# Complements the existing Traefik plugin bouncer
+
+- name: Check if CrowdSec is running in Docker
+  community.docker.docker_container_info:
+    name: crowdsec
+  register: crowdsec_container
+  failed_when: false
+
+- name: Ensure CrowdSec container is running before proceeding
+  fail:
+    msg: "CrowdSec container must be running before setting up firewall bouncer"
+  when: not crowdsec_container.exists or crowdsec_container.container.State.Status != "running"
+
+- name: Install required packages for firewall bouncer
+  apt:
+    name:
+      - iptables
+      - ipset
+      - curl
+      - wget
+    state: present
+    update_cache: true
+
+- name: Create CrowdSec bouncers directory
+  file:
+    path: /etc/crowdsec/bouncers
+    state: directory
+    mode: '0750'
+    owner: root
+    group: root
+
+- name: Download CrowdSec firewall bouncer
+  get_url:
+    url: "https://github.com/crowdsecurity/cs-firewall-bouncer/releases/latest/download/\
+      crowdsec-firewall-bouncer-linux-{{ 'arm64' if ansible_architecture == 'aarch64' else 'amd64' }}.tgz"
+    dest: "/tmp/crowdsec-firewall-bouncer.tgz"
+    mode: '0644'
+  register: download_bouncer
+
+- name: Extract firewall bouncer
+  unarchive:
+    src: "/tmp/crowdsec-firewall-bouncer.tgz"
+    dest: "/tmp"
+    remote_src: true
+    creates: "/tmp/crowdsec-firewall-bouncer-v*/crowdsec-firewall-bouncer"
+
+- name: Find extracted bouncer directory
+  find:
+    paths: "/tmp"
+    patterns: "crowdsec-firewall-bouncer-v*"
+    file_type: directory
+  register: bouncer_dir
+
+- name: Ensure bouncer directory was found
+  fail:
+    msg: "CrowdSec firewall bouncer directory not found after extraction"
+  when: bouncer_dir.files | length == 0
+
+- name: Install firewall bouncer binary
+  copy:
+    src: "{{ bouncer_dir.files[0].path }}/crowdsec-firewall-bouncer"
+    dest: "/usr/local/bin/crowdsec-firewall-bouncer"
+    mode: '0755'
+    owner: root
+    group: root
+    remote_src: true
+
+- name: Store firewall bouncer API key
+  copy:
+    content: "{{ crowdsec_firewall_bouncer_api_key }}"
+    dest: "/etc/crowdsec/bouncers/crowdsec-firewall-bouncer-key"
+    mode: '0600'
+    owner: root
+    group: root
+  no_log: true
+
+- name: Deploy firewall bouncer configuration
+  template:
+    src: "crowdsec-firewall-bouncer.yaml.j2"
+    dest: "/etc/crowdsec/bouncers/crowdsec-firewall-bouncer.yaml"
+    mode: '0644'
+    owner: root
+    group: root
+  notify: restart crowdsec-firewall-bouncer
+
+- name: Deploy systemd service file
+  copy:
+    src: "crowdsec-firewall-bouncer.service"
+    dest: "/etc/systemd/system/crowdsec-firewall-bouncer.service"
+    mode: '0644'
+    owner: root
+    group: root
+  notify:
+    - reload systemd
+    - restart crowdsec-firewall-bouncer
+
+
+- name: Enable and start firewall bouncer service
+  systemd:
+    name: crowdsec-firewall-bouncer
+    enabled: true
+    state: started
+    daemon_reload: true
+
+- name: Check firewall bouncer service status
+  systemd:
+    name: crowdsec-firewall-bouncer
+  register: bouncer_service_status
+
+- name: Display firewall bouncer status
+  debug:
+    msg: "CrowdSec Firewall Bouncer service is {{ bouncer_service_status.status.ActiveState }}"
+
+- name: Verify iptables rules are created
+  shell: |
+    set -o pipefail
+    iptables -L INPUT -n --line-numbers | grep crowdsec
+  register: iptables_rules
+  failed_when: false
+  changed_when: false
+
+- name: Display iptables rules status
+  debug:
+    msg: "CrowdSec iptables rules: {{ 'Active' if iptables_rules.rc == 0 else 'Not found' }}"
+
+- name: Cleanup downloaded files
+  file:
+    path: "{{ item }}"
+    state: absent
+  loop:
+    - "/tmp/crowdsec-firewall-bouncer.tgz"
+    - "{{ bouncer_dir.files[0].path if bouncer_dir.files | length > 0 else '/tmp/crowdsec-firewall-bouncer-nonexistent' }}"

@@ -1,0 +1,172 @@
+---
+# Pangolin Monitoring and Health Check Tasks
+# Comprehensive infrastructure monitoring
+
+- name: Display monitoring banner
+  debug:
+    msg: |
+      📊 Pangolin Infrastructure Health Monitoring
+      Organization: {{ pangolin_organization_id }}
+      Health Checks: {{ pangolin_health_checks }}
+      Metrics: {{ pangolin_metrics_enabled }}
+
+- name: Skip monitoring if disabled
+  meta: end_play
+  when: not pangolin_health_checks
+
+- name: Get comprehensive infrastructure status
+  uri:
+    url: "{{ pangolin_api_base }}/v1/org/{{ pangolin_organization_id }}/status"
+    method: GET
+    headers:
+      Authorization: "Bearer {{ pangolin_root_key }}"
+    validate_certs: false
+    status_code: [200, 404]
+  register: infra_status
+  failed_when: false
+
+- name: Get site connectivity status
+  uri:
+    url: "{{ pangolin_api_base }}/v1/org/{{ pangolin_organization_id }}/sites"
+    method: GET
+    headers:
+      Authorization: "Bearer {{ pangolin_root_key }}"
+    validate_certs: false
+    status_code: [200]
+  register: site_connectivity
+
+- name: Get resource health status
+  uri:
+    url: "{{ pangolin_api_base }}/v1/org/{{ pangolin_organization_id }}/resources"
+    method: GET
+    headers:
+      Authorization: "Bearer {{ pangolin_root_key }}"
+    validate_certs: false
+    status_code: [200]
+  register: resource_health
+
+- name: Analyze site connectivity
+  set_fact:
+    online_sites: "{{ site_connectivity.json.data.sites | selectattr('online', 'equalto', true) | list }}"
+    offline_sites: "{{ site_connectivity.json.data.sites | selectattr('online', 'equalto', false) | list }}"
+    total_sites: "{{ site_connectivity.json.data.sites | length }}"
+
+- name: Analyze resource health
+  set_fact:
+    active_resources: "{{ resource_health.json.data.resources | selectattr('status', 'defined') | selectattr('status', 'equalto', 'active') | list }}"
+    failed_resources: "{{ resource_health.json.data.resources | selectattr('status', 'defined') | rejectattr('status', 'equalto', 'active') | list }}"
+    total_resources: "{{ resource_health.json.data.resources | length }}"
+
+- name: Check tunnel connectivity for each site
+  uri:
+    url: "{{ pangolin_api_base }}/v1/site/{{ site.siteId }}/ping"
+    method: GET
+    headers:
+      Authorization: "Bearer {{ pangolin_root_key }}"
+    validate_certs: false
+    status_code: [200, 404, 408]
+  register: tunnel_ping_results
+  loop: "{{ site_connectivity.json.data.sites }}"
+  loop_control:
+    loop_var: site
+    label: "{{ site.name }}"
+  failed_when: false
+
+- name: Analyze tunnel performance
+  set_fact:
+    responsive_tunnels: "{{ tunnel_ping_results.results | selectattr('status', 'equalto', 200) | list }}"
+    slow_tunnels: "{{ tunnel_ping_results.results | selectattr('status', 'equalto', 408) | list }}"
+    unreachable_tunnels: "{{ tunnel_ping_results.results | selectattr('status', 'equalto', 404) | list }}"
+
+- name: Calculate infrastructure health score
+  set_fact:
+    site_health_score: "{{ ((online_sites | length) / total_sites * 100) | round(1) if total_sites > 0 else 0 }}"
+    resource_health_score: "{{ ((active_resources | length) / total_resources * 100) | round(1) if total_resources > 0 else 0 }}"
+    tunnel_health_score: "{{ ((responsive_tunnels | length) / total_sites * 100) | round(1) if total_sites > 0 else 0 }}"
+
+- name: Determine overall health status
+  set_fact:
+    overall_health: |
+      {% if site_health_score >= 90 and resource_health_score >= 90 and tunnel_health_score >= 80 %}
+      Excellent
+      {% elif site_health_score >= 75 and resource_health_score >= 75 and tunnel_health_score >= 60 %}
+      Good
+      {% elif site_health_score >= 50 and resource_health_score >= 50 %}
+      Fair
+      {% else %}
+      Poor
+      {% endif %}
+
+- name: Generate health report
+  debug:
+    msg: |
+      📊 Pangolin Infrastructure Health Report
+      ==========================================
+
+      🔗 Sites Status:
+      - Total Sites: {{ total_sites }}
+      - Online: {{ online_sites | length }} ({{ site_health_score }}%)
+      - Offline: {{ offline_sites | length }}
+
+      📊 Resources Status:
+      - Total Resources: {{ total_resources }}
+      - Active: {{ active_resources | length }} ({{ resource_health_score }}%)
+      - Failed: {{ failed_resources | length }}
+
+      🌐 Tunnel Performance:
+      - Responsive: {{ responsive_tunnels | length }} ({{ tunnel_health_score }}%)
+      - Slow: {{ slow_tunnels | length }}
+      - Unreachable: {{ unreachable_tunnels | length }}
+
+      🏥 Overall Health: {{ overall_health.strip() }}
+
+      {% if offline_sites | length > 0 %}
+      ⚠️  Offline Sites:
+      {% for site in offline_sites %}
+      - {{ site.name }} (ID: {{ site.siteId }})
+      {% endfor %}
+      {% endif %}
+
+      {% if failed_resources | length > 0 %}
+      ❌ Failed Resources:
+      {% for resource in failed_resources[:5] %}
+      - {{ resource.name | default('Unknown') }} (Status: {{ resource.status | default('Unknown') }})
+      {% endfor %}
+      {% if failed_resources | length > 5 %}
+      ... and {{ failed_resources | length - 5 }} more
+      {% endif %}
+      {% endif %}
+
+- name: Export metrics for external monitoring
+  copy:
+    content: |
+      # Pangolin Infrastructure Metrics
+      # Generated: {{ ansible_date_time.iso8601 }}
+
+      pangolin_sites_total {{ total_sites }}
+      pangolin_sites_online {{ online_sites | length }}
+      pangolin_sites_offline {{ offline_sites | length }}
+      pangolin_resources_total {{ total_resources }}
+      pangolin_resources_active {{ active_resources | length }}
+      pangolin_resources_failed {{ failed_resources | length }}
+      pangolin_tunnels_responsive {{ responsive_tunnels | length }}
+      pangolin_tunnels_slow {{ slow_tunnels | length }}
+      pangolin_tunnels_unreachable {{ unreachable_tunnels | length }}
+      pangolin_health_score_sites {{ site_health_score }}
+      pangolin_health_score_resources {{ resource_health_score }}
+      pangolin_health_score_tunnels {{ tunnel_health_score }}
+    dest: "/tmp/pangolin_metrics.prom"
+    mode: '0644'
+  when: pangolin_metrics_enabled
+
+- name: Set monitoring facts for reporting
+  set_fact:
+    pangolin_monitoring_summary:
+      total_sites: "{{ total_sites }}"
+      online_sites: "{{ online_sites | length }}"
+      total_resources: "{{ total_resources }}"
+      active_resources: "{{ active_resources | length }}"
+      overall_health: "{{ overall_health.strip() }}"
+      site_health_score: "{{ site_health_score }}"
+      resource_health_score: "{{ resource_health_score }}"
+      tunnel_health_score: "{{ tunnel_health_score }}"

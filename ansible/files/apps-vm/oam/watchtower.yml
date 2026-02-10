@@ -1,0 +1,18 @@
+services:
+  watchtower:
+    image: containrrr/watchtower
+    container_name: watchtower
+    extends:
+      file: ../common.yml
+      service: socket-base
+    environment:
+      # WATCHTOWER_RUN_ONCE: false # or
+      # WATCHTOWER_POLL_INTERVAL: 21600
+      WATCHTOWER_SCHEDULE: "0 0 4 * * *"
+      WATCHTOWER_CLEANUP: false # there is docker-gc for that
+      WATCHTOWER_LABEL_TAKE_PRECEDENCE: true
+      WATCHTOWER_MONITOR_ONLY: false
+      # WATCHTOWER_LOG_LEVEL: debug
+      WATCHTOWER_NOTIFICATIONS: gotify
+      WATCHTOWER_NOTIFICATION_GOTIFY_URL: https://gotify.nobasura.org
+      WATCHTOWER_NOTIFICATION_GOTIFY_TOKEN: ${WT_GOTIFY_TOKEN}

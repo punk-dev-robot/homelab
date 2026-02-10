@@ -1,0 +1,20 @@
+services:
+  newt:
+    extends:
+      file: ../common.yml
+      service: base
+    image: fosrl/newt:1.2.1
+    container_name: newt
+    network_mode: host
+    environment:
+      - NEWT_ID=${NEWT_ID}
+      - NEWT_SECRET=${NEWT_SECRET}
+      - PANGOLIN_ENDPOINT=${PANGOLIN_ENDPOINT}
+    healthcheck:
+      test: ["CMD-SHELL", "wget --quiet --spider --timeout=10 --tries=1 https://pangolin.nobasura.org || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+    labels:
+      - "deunhealth.restart.on.unhealthy=true"

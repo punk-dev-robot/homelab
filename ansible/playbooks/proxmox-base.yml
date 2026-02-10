@@ -1,0 +1,174 @@
+---
+- name: Configure Proxmox Base - Critical Settings
+  hosts: px-cpu
+  become: yes
+  gather_facts: yes
+
+  tasks:
+    # ============================================
+    # 1. SSH Security (Disable Password Auth)
+    # ============================================
+    - name: Disable SSH password authentication
+      lineinfile:
+        path: /etc/ssh/sshd_config
+        regexp: '^#?PasswordAuthentication'
+        line: "PasswordAuthentication no"
+        validate: '/usr/sbin/sshd -t -f %s'
+      notify: restart sshd
+      tags: [ssh, security]
+
+    # ============================================
+    # 2. Repository Configuration
+    # ============================================
+    - name: Update apt cache
+      apt:
+        update_cache: yes
+        cache_valid_time: 3600
+      tags: [repos]
+
+    - name: Remove Proxmox enterprise repository
+      apt_repository:
+        repo: "deb https://enterprise.proxmox.com/debian/pve bookworm pve-enterprise"
+        state: absent
+      tags: [repos]
+
+    - name: Add Proxmox no-subscription repository
+      apt_repository:
+        repo: "{{ pve_repository_line }}"
+        state: present
+        filename: pve-no-subscription
+      tags: [repos]
+
+    - name: Remove subscription warning from UI
+      replace:
+        path: /usr/share/javascript/proxmox-widget-toolkit/proxmoxlib.js
+        regexp: "Ext.Msg.show\\(\\{[^}]*No valid subscription[^}]*\\}\\);"
+        replace: "void(0);"
+        backup: yes
+      tags: [repos, ui]
+      ignore_errors: yes  # File location might change in different versions
+
+    # ============================================
+    # 3. Essential Packages
+    # ============================================
+    - name: Install essential packages
+      apt:
+        name: "{{ essential_packages }}"
+        state: present
+        update_cache: yes
+      tags: [packages]
+
+    # ============================================
+    # 4. User Management
+    # ============================================
+    - name: Create admin user
+      user:
+        name: "{{ admin_user }}"
+        groups: "{{ admin_groups | join(',') }}"
+        shell: /bin/bash
+        create_home: yes
+        comment: "Admin user"
+      tags: [users]
+
+    - name: Ensure .ssh directory exists for admin user
+      file:
+        path: "/home/{{ admin_user }}/.ssh"
+        state: directory
+        owner: "{{ admin_user }}"
+        group: "{{ admin_user }}"
+        mode: '0700'
+      tags: [users, ssh]
+
+    - name: Set up SSH keys for admin user
+      authorized_key:
+        user: "{{ admin_user }}"
+        key: "{{ item }}"
+        state: present
+      loop:
+        - "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIJCGSK9wzG5vShe/gyYCNUHGe+IASZKElxtIczzjFRgW kuba@1password"
+      tags: [users, ssh]
+
+    - name: Set up SSH keys for root user (for Ansible)
+      authorized_key:
+        user: root
+        key: "{{ item }}"
+        state: present
+      loop:
+        - "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIPXq3oHq10bmPW3YL3OvVGd7zF0NsLzxqUgEGups7b4w root@1password"
+      tags: [users, ssh]
+
+    - name: Configure sudoers for admin user
+      lineinfile:
+        path: /etc/sudoers.d/{{ admin_user }}
+        line: "{{ admin_user }} ALL=(ALL:ALL) NOPASSWD: ALL"
+        create: yes
+        validate: 'visudo -cf %s'
+        mode: '0440'
+      tags: [users, sudo]
+
+    # ============================================
+    # 5. SSH Configuration
+    # ============================================
+    - name: Configure SSH daemon settings
+      lineinfile:
+        path: /etc/ssh/sshd_config
+        regexp: "{{ item.regexp }}"
+        line: "{{ item.line }}"
+        validate: '/usr/sbin/sshd -t -f %s'
+      loop:
+        - { regexp: '^#?PermitRootLogin', line: "PermitRootLogin {{ sshd_config.PermitRootLogin }}" }
+        - { regexp: '^#?PasswordAuthentication', line: "PasswordAuthentication {{ sshd_config.PasswordAuthentication }}" }
+        - { regexp: '^#?PubkeyAuthentication', line: "PubkeyAuthentication {{ sshd_config.PubkeyAuthentication }}" }
+        - { regexp: '^#?X11Forwarding', line: "X11Forwarding {{ sshd_config.X11Forwarding }}" }
+        - { regexp: '^#?UseDNS', line: "UseDNS {{ sshd_config.UseDNS }}" }
+      notify: restart sshd
+      tags: [ssh]
+
+    # ============================================
+    # 6. System Configuration
+    # ============================================
+    - name: Set timezone
+      timezone:
+        name: "{{ timezone }}"
+      tags: [system]
+
+    - name: Configure swappiness for VM host
+      sysctl:
+        name: vm.swappiness
+        value: "{{ vm_swappiness }}"
+        sysctl_set: yes
+        state: present
+        reload: yes
+      tags: [system, performance]
+
+    # ============================================
+    # 7. Network Validation (Don't modify)
+    # ============================================
+    - name: Validate network configuration exists
+      command: ip addr show vmbr2.101
+      register: network_check
+      changed_when: false
+      failed_when: false
+      tags: [network, validation]
+
+    - name: Report network status
+      debug:
+        msg: "Network configuration validated - IP is configured on vmbr2.101"
+      when: network_check.rc == 0
+      tags: [network, validation]
+
+    # ============================================
+    # 8. Proxmox Updates
+    # ============================================
+    - name: Update Proxmox packages (security only)
+      apt:
+        upgrade: safe
+        update_cache: yes
+      tags: [updates]
+      when: false  # Set to true when ready to apply updates
+
+  handlers:
+    - name: restart sshd
+      service:
+        name: ssh
+        state: restarted

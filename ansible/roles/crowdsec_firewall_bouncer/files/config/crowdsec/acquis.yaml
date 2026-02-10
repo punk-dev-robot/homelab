@@ -1,0 +1,13 @@
+---
+# SSH log monitoring via systemd journal
+source: journalctl
+journalctl_filter:
+  - "--directory=/var/log/host/"
+labels:
+  type: syslog
+---
+# Traefik HTTP access logs for web attack detection
+filenames:
+  - /var/log/traefik/access.log
+labels:
+  type: traefik

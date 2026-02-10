@@ -1,0 +1,17 @@
+docker_my_user: kuba
+docker_user: dockermedia
+docker_uid: 1001
+docker_group: dockermedia
+docker_gid: 1001
+docker_loglevel: info
+docker_timezone: Europe/London
+docker_umask: "022"
+
+docker_log_max_size: "100m"
+docker_log_max_file: "5"
+
+media_dir: /mnt/nas-data
+docker_home_dir: /opt/docker
+docker_compose_dir: "{{ docker_home_dir }}/compose"
+docker_appdata_dir: "{{ docker_home_dir }}/appdata"
+docker_logs_dir: "{{ docker_home_dir }}/logs"

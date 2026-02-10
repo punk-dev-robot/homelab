@@ -1,0 +1,17 @@
+volumes:
+  portainer-data:
+    name: portainer-data
+
+services:
+  portainer:
+    image: portainer/portainer-ee:latest
+    container_name: portainer
+    extends:
+      file: ../common.yml
+      service: socket-base
+    ports:
+      - 9900:9000
+    volumes:
+      - portainer-data:/data
+    labels:
+      - deunhealth.restart.on.unhealthy=true

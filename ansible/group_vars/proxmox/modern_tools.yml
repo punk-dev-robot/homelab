@@ -1,0 +1,72 @@
+---
+# Modern tools installation configuration
+# Multiple installation methods for flexibility
+
+# Modern tools for Proxmox hypervisor administration
+# Focused on tools actually useful for hypervisor management
+apt_packages:
+  # Essential hypervisor tools (available in Debian repos)
+  essential:
+    - jq           # JSON processor for Proxmox API calls
+    - mtr-tiny     # Network diagnostic tool for VM connectivity
+    - dnsutils     # DNS tools for VM networking troubleshooting
+    - strace       # System call tracing for debugging VMs
+    - sysstat      # System performance tools (iostat for storage)
+    - ethtool      # Advanced network interface tools
+    - iotop        # I/O monitoring (critical for VM performance)
+    - lsof         # File/network debugging for VMs
+
+  # Modern tools (backports repo if needed)
+  modern:
+    - fzf          # Fuzzy finder for VM configs/logs
+    - ripgrep      # Log analysis (you already use this)
+    - fd-find      # Finding VM configs quickly
+    - bat          # Reading config files better
+
+# Rust tools perfect for hypervisor management (you already use these)
+cargo_tools:
+  - name: dust
+    description: "Modern du - essential for VM storage monitoring"
+  - name: procs
+    description: "Modern ps - better process monitoring for VMs"
+  - name: bandwhich
+    description: "Network usage by process - track VM network usage"
+  - name: bottom
+    description: "Modern htop - perfect for monitoring VM resource usage"
+  - name: zoxide
+    description: "Smart cd for navigating VM config directories"
+
+# Tools to install via eget (GitHub releases)
+eget_tools:
+  - name: atuin
+    repo: "atuinsh/atuin"
+    asset_pattern: ".*x86_64-unknown-linux-gnu.tar.gz"
+    description: "Shell history sync"
+  - name: starship
+    repo: "starship/starship"
+    asset_pattern: ".*x86_64-unknown-linux-gnu.tar.gz"
+    description: "Cross-shell prompt"
+  - name: delta
+    repo: "dandavison/delta"
+    asset_pattern: ".*x86_64-unknown-linux-gnu.tar.gz"
+    description: "Git diff tool"
+  - name: bottom
+    repo: "ClementTsang/bottom"
+    asset_pattern: ".*x86_64-unknown-linux-gnu.tar.gz"
+    description: "Modern top replacement"
+
+# Tools to install via direct download (with custom install logic)
+direct_downloads:
+  - name: lazygit
+    url: "https://github.com/jesseduffield/lazygit/releases/latest/download/lazygit_*_Linux_x86_64.tar.gz"
+    description: "Git TUI"
+  - name: lazydocker
+    url: "https://github.com/jesseduffield/lazydocker/releases/latest/download/lazydocker_*_Linux_x86_64.tar.gz"
+    description: "Docker TUI"
+
+# Installation preferences
+install_preferences:
+  rust_toolchain: true           # Install Rust toolchain for cargo tools
+  homebrew: false               # Skip Homebrew for now (can enable later)
+  eget: true                    # Install eget for GitHub releases
+  install_location: "/usr/local/bin"  # Where to install binaries

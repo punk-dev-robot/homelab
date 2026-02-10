@@ -1,0 +1,120 @@
+---
+- name: Deploy VPS services
+  hosts: gateway
+  become: true
+
+  pre_tasks:
+    - name: Create pangolin secrets directory
+      file:
+        path: "{{ docker_appdata_dir }}/pangolin/secrets"
+        state: directory
+        mode: "0700"
+
+    - name: Generate CrowdSec Traefik bouncer API key for pangolin
+      vars:
+        stack_env_vars: >-
+          {{ docker_env_vars.common | combine(
+            docker_env_vars.pangolin | default({}),
+            env_vars.common | default({}),
+            env_vars.pangolin | default({})
+          ) }}
+      copy:
+        content: "{{ stack_env_vars.CROWDSEC_BOUNCER_API_KEY | default('') }}"
+        dest: "{{ docker_appdata_dir }}/pangolin/secrets/crowdsec-api-key"
+        mode: "0600"
+      when: "(stack_env_vars.CROWDSEC_BOUNCER_API_KEY | default('')) != ''"
+
+    - name: Create Authentik appdata directories
+      file:
+        path: "{{ item }}"
+        state: directory
+        owner: "1000"
+        group: "1000"
+        mode: "0755"
+      loop:
+        - "{{ docker_appdata_dir }}/authentik"
+        - "{{ docker_appdata_dir }}/authentik/media"
+        - "{{ docker_appdata_dir }}/authentik/media/public"
+        - "{{ docker_appdata_dir }}/authentik/media/public/branding"
+        - "{{ docker_appdata_dir }}/authentik/custom-templates"
+        - "{{ docker_appdata_dir }}/authentik/certs"
+      tags: ["authentik", "permissions"]
+
+    - name: Set Authentik media permissions
+      file:
+        path: "{{ docker_appdata_dir }}/authentik/media"
+        owner: "1000"
+        group: "1000"
+        mode: "0775"
+        recurse: true
+      tags: ["authentik", "permissions"]
+
+    - name: Set Authentik certs permissions
+      file:
+        path: "{{ docker_appdata_dir }}/authentik/certs"
+        owner: "1000"
+        group: "1000"
+        mode: "0755"
+        recurse: true
+      tags: ["authentik", "permissions"]
+
+  roles:
+    - role: docker
+      vars:
+        docker_setup: true
+        docker_deploy: true
+        docker_restart: true
+
+  post_tasks:
+    - name: Include auth bypass variables
+      include_vars: roles/pangolin/vars/auth_bypass.yml
+      when: auth_bypass_enabled | default(true)
+      tags: ["auth-bypass", "pangolin"]
+
+    - name: Generate auth bypass routers configuration
+      template:
+        src: roles/pangolin/templates/bypass-routers.yml.j2
+        dest: "{{ docker_compose_dir }}/pangolin/traefik_rules/bypass-routers.yml"
+        owner: root
+        group: root
+        mode: "0644"
+      no_log: true
+      # notify: reload traefik config  # Handler not available in this playbook
+      when: auth_bypass_enabled | default(true)
+      tags: ["auth-bypass", "pangolin"]
+
+    - name: Wait for CrowdSec container to be ready
+      wait_for:
+        port: 8080
+        host: 127.0.0.1
+        delay: 10
+        timeout: 60
+      tags: ["crowdsec", "bouncers"]
+
+    - name: Register CrowdSec Traefik bouncer
+      shell: |
+        docker exec crowdsec cscli bouncers delete traefik-bouncer || true
+        docker exec crowdsec cscli bouncers add traefik-bouncer --key "{{ crowdsec_traefik_bouncer_key }}"
+      register: traefik_bouncer_result
+      failed_when: false
+      tags: ["crowdsec", "bouncers"]
+
+    - name: Register CrowdSec firewall bouncer
+      shell: |
+        docker exec crowdsec cscli bouncers delete crowdsec-firewall-bouncer || true
+        docker exec crowdsec cscli bouncers add crowdsec-firewall-bouncer --key "{{ crowdsec_firewall_bouncer_api_key }}"
+      register: firewall_bouncer_result
+      failed_when: false
+      tags: ["crowdsec", "bouncers"]
+
+    - name: Verify bouncer registrations
+      shell: docker exec crowdsec cscli bouncers list
+      register: bouncer_list
+      tags: ["crowdsec", "bouncers"]
+
+    - name: Display bouncer registration status
+      debug:
+        msg: |
+          CrowdSec Bouncer Registration Results:
+          {{ bouncer_list.stdout }}
+      tags: ["crowdsec", "bouncers"]

@@ -1,0 +1,27 @@
+---
+# Standardized test result recording
+# DRY principle implementation for test result management
+
+- name: Record standardized test result
+  set_fact:
+    test_results: "{{ test_results + [standardized_test_entry] }}"
+    test_summary: "{{ test_summary | combine(updated_summary) }}"
+  vars:
+    standardized_test_entry:
+      name: "{{ test_name }}"
+      status: "{{ 'PASS' if test_passed else 'FAIL' }}"
+      critical: "{{ test_config.critical | default(false) }}"
+      duration_ms: "{{ test_duration_ms | default(0) }}"
+      details: "{{ test_details | default('') }}"
+      expected: "{{ test_expected | default('Expected result') }}"
+      actual: "{{ test_actual | default('') }}"
+      error: "{{ test_error | default('') }}"
+    updated_summary:
+      total: "{{ (test_summary.total | int) + 1 }}"
+      passed: "{{ (test_summary.passed | int) + (1 if test_passed else 0) }}"
+      failed: "{{ (test_summary.failed | int) + (0 if test_passed else 1) }}"
+      critical_failures: "{{ test_summary.critical_failures + ([test_name] if (not test_passed and (test_config.critical | default(false))) else []) }}"
+
+- name: Display test progress
+  debug:
+    msg: "{{ '✅' if test_passed else '❌' }} {{ test_name }} ({{ test_summary.passed | int }}/{{ test_summary.total | int }})"

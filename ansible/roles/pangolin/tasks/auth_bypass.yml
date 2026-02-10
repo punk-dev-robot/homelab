@@ -1,0 +1,13 @@
+---
+- name: Include auth bypass variables
+  include_vars: auth_bypass.yml
+
+- name: Generate bypass routers configuration
+  template:
+    src: bypass-routers.yml.j2
+    dest: /opt/docker/compose/pangolin/traefik_rules/bypass-routers.yml
+    owner: root
+    group: root
+    mode: '0644'
+  no_log: true
+  notify: reload traefik config

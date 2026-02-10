@@ -1,0 +1,15 @@
+[extend]
+useDefault = true
+
+# Global allowlist for known safe patterns
+# No path exclusions — all directories are scanned
+[allowlist]
+description = "Known false positives and safe patterns"
+regexes = [
+  # Test file uses deliberate invalid key for security testing
+  '''invalid-test-key-12345''',
+  # CrowdSec troubleshooting guide uses placeholder variable names in curl examples
+  '''CONSOLE_API_KEY''',
+  # InfluxDB commented-out example defaults (kept as quick reference)
+  '''DOCKER_INFLUXDB_INIT_(PASSWORD|ADMIN_TOKEN)''',
+]

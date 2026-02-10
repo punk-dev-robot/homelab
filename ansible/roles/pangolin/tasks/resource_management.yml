@@ -1,0 +1,230 @@
+---
+# Pangolin Resource Management Tasks
+
+- name: Validate prerequisites
+  assert:
+    that:
+      - organization_id_slug is defined
+      - homelab_sites is defined
+      - pangolin_api_base is defined
+      - pangolin_root_key is defined
+    fail_msg: "Required variables for resource management are not properly defined"
+
+- name: Get current sites
+  uri:
+    url: "{{ pangolin_api_base }}/v1/org/{{ organization_id_slug }}/sites"
+    method: GET
+    headers:
+      Authorization: "Bearer {{ pangolin_root_key }}"
+    validate_certs: false
+    status_code: [200]
+  register: current_sites
+
+- name: Build site ID mapping
+  set_fact:
+    site_id_map: "{{ site_id_map | default({}) | combine({item.name: item.siteId | int}) }}"
+  loop: "{{ current_sites.json.data.sites }}"
+
+- name: Build service list with site IDs
+  vars:
+    site_services: "{{ item.services | map('combine', {'site_name': item.name, 'site_id': site_id_map[item.name]}) | list }}"
+  set_fact:
+    all_services: "{{ all_services | default([]) + site_services }}"
+  loop: "{{ homelab_sites }}"
+  when: item.name in site_id_map
+
+# Resource Management
+- name: Get existing resources
+  uri:
+    url: "{{ pangolin_api_base }}/v1/org/{{ organization_id_slug }}/resources"
+    method: GET
+    headers:
+      Authorization: "Bearer {{ pangolin_root_key }}"
+    validate_certs: false
+    status_code: [200]
+  register: existing_resources
+
+- name: Build existing resource mapping
+  set_fact:
+    existing_resource_map: "{{ existing_resource_map | default({}) | combine({item.name: item.resourceId}) }}"
+  loop: "{{ existing_resources.json.data.resources }}"
+  when: item.name in (all_services | map(attribute='name') | list)
+
+- name: Check protocols of existing resources
+  uri:
+    url: "{{ pangolin_api_base }}/v1/resource/{{ existing_resource_map[item.name] }}"
+    method: GET
+    headers:
+      Authorization: "Bearer {{ pangolin_root_key }}"
+    validate_certs: false
+    status_code: [200]
+  register: resource_details
+  loop: "{{ all_services }}"
+  loop_control:
+    label: "{{ item.name }}"
+  when: item.name in (existing_resource_map | default({}) | list)
+
+- name: Identify resources needing recreation
+  set_fact:
+    resources_to_recreate: "{{ resources_to_recreate | default([]) + [item.item] }}"
+  loop: "{{ resource_details.results | default([]) }}"
+  when:
+    - item.skipped is not defined
+    - item.json.data.protocol != 'tcp'
+
+- name: Delete resources with incorrect protocol
+  uri:
+    url: "{{ pangolin_api_base }}/v1/resource/{{ existing_resource_map[item.name] }}"
+    method: DELETE
+    headers:
+      Authorization: "Bearer {{ pangolin_root_key }}"
+    validate_certs: false
+    status_code: [200, 204, 404]
+  register: resource_deletions
+  failed_when: false
+  loop: "{{ resources_to_recreate | default([]) }}"
+  loop_control:
+    label: "{{ item.name }}"
+
+- name: Create resources with correct protocol
+  uri:
+    url: "{{ pangolin_api_base }}/v1/org/{{ organization_id_slug }}/site/{{ item.site_id }}/resource"
+    method: PUT
+    headers:
+      Authorization: "Bearer {{ pangolin_root_key }}"
+      Content-Type: "application/json"
+    body_format: json
+    body:
+      name: "{{ item.name }}"
+      subdomain: "{{ item.name }}"
+      isBaseDomain: false
+      siteId: "{{ item.site_id | int }}"
+      http: true
+      protocol: "tcp"
+      domainId: "domain1"
+    validate_certs: false
+    status_code: [200, 201]
+  register: resource_creations
+  failed_when: false
+  loop: "{{ all_services }}"
+  loop_control:
+    label: "{{ item.name }}"
+  when: >
+    item.name not in (existing_resource_map | default({}) | list) or
+    item.name in (resources_to_recreate | default([]) | map(attribute='name') | list)
+
+# Target Management
+- name: Get updated resource list for target management
+  uri:
+    url: "{{ pangolin_api_base }}/v1/org/{{ organization_id_slug }}/resources"
+    method: GET
+    headers:
+      Authorization: "Bearer {{ pangolin_root_key }}"
+    validate_certs: false
+    status_code: [200]
+  register: updated_resources
+
+- name: Build resource ID mapping
+  set_fact:
+    resource_id_map: "{{ resource_id_map | default({}) | combine({item.name: item.resourceId}) }}"
+  loop: "{{ updated_resources.json.data.resources }}"
+  when: item.name in (all_services | map(attribute='name') | list)
+
+- name: Get existing targets for each resource
+  uri:
+    url: "{{ pangolin_api_base }}/v1/resource/{{ resource_id_map[item.name] }}/targets"
+    method: GET
+    headers:
+      Authorization: "Bearer {{ pangolin_root_key }}"
+    validate_certs: false
+    status_code: [200, 404]
+  register: current_targets
+  failed_when: false
+  loop: "{{ all_services }}"
+  loop_control:
+    label: "{{ item.name }}"
+  when:
+    - resource_id_map is defined
+    - resource_id_map[item.name] is defined
+
+- name: Analyze target requirements
+  set_fact:
+    target_analysis: "{{ target_analysis | default([]) + [target_info] }}"
+  vars:
+    current_targets_list: "{{ (item.json.data.targets | default([])) if item.status == 200 else [] }}"
+    desired_target:
+      ip: "{{ item.item.internal_ip }}"
+      port: "{{ item.item.internal_port | int }}"
+      method: "http"
+      enabled: true
+    desired_exists: "{{
+      current_targets_list |
+      selectattr('ip', 'equalto', item.item.internal_ip) |
+      selectattr('port', 'equalto', item.item.internal_port | int) |
+      selectattr('method', 'equalto', 'http') |
+      list | length > 0
+    }}"
+    unwanted_targets: "{{
+      current_targets_list | rejectattr('ip', 'equalto', item.item.internal_ip) | list +
+      current_targets_list | rejectattr('port', 'equalto', item.item.internal_port | int) | list +
+      current_targets_list | rejectattr('enabled', 'equalto', true) | list
+    }}"
+    target_info:
+      service_name: "{{ item.item.name }}"
+      resource_id: "{{ resource_id_map[item.item.name] }}"
+      desired_target: "{{ desired_target }}"
+      unwanted_targets: "{{ unwanted_targets }}"
+      needs_creation: "{{ not desired_exists }}"
+      needs_cleanup: "{{ unwanted_targets | length > 0 }}"
+  loop: "{{ current_targets.results }}"
+  when:
+    - item.skipped is not defined
+    - resource_id_map[item.item.name] is defined
+
+- name: Remove unwanted targets
+  uri:
+    url: "{{ pangolin_api_base }}/v1/target/{{ target.targetId }}"
+    method: DELETE
+    headers:
+      Authorization: "Bearer {{ pangolin_root_key }}"
+    validate_certs: false
+    status_code: [200, 204, 404]
+  register: target_cleanup
+  failed_when: false
+  loop: "{{ target_analysis | default([]) | subelements('unwanted_targets', skip_missing=True) }}"
+  loop_control:
+    loop_var: target_analysis_item
+    label: "{{ target_analysis_item.0.service_name }}: Remove target {{ target_analysis_item.1.targetId }}"
+  vars:
+    target: "{{ target_analysis_item.1 }}"
+  when: target_analysis_item.0.needs_cleanup
+
+- name: Create missing targets
+  uri:
+    url: "{{ pangolin_api_base }}/v1/resource/{{ item.resource_id }}/target"
+    method: PUT
+    headers:
+      Authorization: "Bearer {{ pangolin_root_key }}"
+      Content-Type: "application/json"
+    body_format: json
+    body:
+      ip: "{{ item.desired_target.ip }}"
+      port: "{{ item.desired_target.port | int }}"
+      enabled: "{{ item.desired_target.enabled | bool }}"
+      method: "{{ item.desired_target.method }}"
+    validate_certs: false
+    status_code: [200, 201, 409]
+  register: target_creations
+  failed_when: false
+  loop: "{{ target_analysis | default([]) }}"
+  loop_control:
+    label: "{{ item.service_name }}: Create target {{ item.desired_target.ip }}:{{ item.desired_target.port }}"
+  when: item.needs_creation
+
+# Set facts for use by other tasks
+- name: Set resource management facts
+  set_fact:
+    resources_deleted: "{{ resource_deletions.results | default([]) | rejectattr('skipped', 'defined') | list | length }}"
+    resources_created: "{{ resource_creations.results | default([]) | rejectattr('skipped', 'defined') | list | length }}"
+    targets_cleaned: "{{ (target_analysis | default([]) | map(attribute='unwanted_targets') | flatten | length) }}"
+    targets_created: "{{ target_analysis | default([]) | selectattr('needs_creation') | list | length }}"

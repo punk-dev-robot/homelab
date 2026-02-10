@@ -1,0 +1,16 @@
+---
+# Authentik SSO authentication monitoring
+# Monitors both authentik-server and authentik-worker containers for auth attacks
+source: docker
+container_name:
+  - authentik-server
+  - authentik-worker
+labels:
+  type: authentik
+---
+# Additional HTTP auth monitoring for services behind Authentik
+# Monitor Traefik logs for authentication-related HTTP patterns
+filenames:
+  - /var/log/traefik/access.log
+labels:
+  type: traefik

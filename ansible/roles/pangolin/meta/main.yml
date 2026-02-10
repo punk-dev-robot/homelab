@@ -1,0 +1,27 @@
+---
+galaxy_info:
+  author: Homelab Infrastructure Team
+  description: Complete Pangolin tunnel infrastructure management
+  company: Personal Homelab
+  license: MIT
+  min_ansible_version: "2.9"
+  platforms:
+    - name: Ubuntu
+      versions:
+        - focal
+        - jammy
+    - name: Debian
+      versions:
+        - bullseye
+        - bookworm
+  galaxy_tags:
+    - networking
+    - tunnels
+    - wireguard
+    - infrastructure
+
+dependencies: []
+
+collections:
+  - community.general
+  - community.docker

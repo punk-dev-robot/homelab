@@ -1,0 +1,29 @@
+---
+# Security test: No bypass header should be blocked
+# Production-grade test using standardized components
+
+- name: Set test context
+  set_fact:
+    test_name: "Security: No bypass header blocked for {{ target_service }}"
+    test_start_time: "{{ ansible_date_time.epoch }}"
+
+- name: Execute HTTP test without bypass header
+  include_tasks: common/test_base.yml
+  vars:
+    test_config:
+      url: "https://{{ target_service }}.{{ organization_domain }}"
+      headers: {}
+      timeout: "{{ test_categories.security.timeout }}"
+      critical: "{{ test_categories.security.critical }}"
+      validation_pattern: "{{ test_patterns.sso_redirect.validation_pattern }}"
+      expected_statuses: [302]
+      validation_logic: "{{
+        http_result.status is defined and
+        http_result.status == 302 and
+        location_valid | default(false)
+      }}"
+    test_expected: "302 redirect to pangolin.{{ organization_domain }}"
+    test_details: "Security: No bypass header should be blocked"
+
+- name: Record security test result
+  include_tasks: common/test_recorder.yml

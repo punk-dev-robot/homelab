@@ -1,0 +1,21 @@
+services:
+  jolly:
+    image: lscr.io/linuxserver/jellyfin:latest
+    container_name: jolly
+    extends:
+      file: ../common.yml
+      service: base
+    environment:
+      - JELLYFIN_PublishedServerUrl=https://jolly.lab.nobasura.org # autodiscovery domain response
+      - DOCKER_MODS=linuxserver/mods:jellyfin-opencl-intel
+    devices:
+      - /dev/dri:/dev/dri
+    volumes:
+      - ${APP_DATA}/jolly:/config
+      - ${DATA_DIR}/media:/media
+      - /dev/shm:/data/transcode # Offload transcoding to RAM if you have enough RAM
+    ports:
+      - 8095:8096 # default http traffic
+      - 8919:8920 # default https traffic
+      # - 7359:7359/udp # sd
+      # - 1900:1900/udp # sd

@@ -1,0 +1,73 @@
+---
+# Pangolin Role - Main Tasks
+# Complete tunnel infrastructure orchestration
+
+# - name: Display Pangolin role execution banner
+#   debug:
+#     msg: |
+#       🚀 Pangolin Tunnel Infrastructure Management
+#       Organization: {{ pangolin_organization_id }}
+#       Mode: {{ 'Idempotent' if pangolin_idempotent_mode else 'Force' }}
+#       Target Sites: {{ pangolin_target_sites | length }}
+
+- name: Validate required variables
+  assert:
+    that:
+      - pangolin_api_base is defined
+      - pangolin_root_key is defined
+      - pangolin_target_sites is defined
+    fail_msg: "Required Pangolin variables are not properly defined"
+
+# - name: Include organization management tasks
+#   include_tasks: organization_management.yml
+#   tags: ["pangolin", "organization"]
+#
+# - name: Include site management tasks
+#   include_tasks: site_management.yml
+#   tags: ["pangolin", "sites"]
+#
+- name: Include resource management tasks
+  include_tasks: resource_management.yml
+  tags: ["pangolin", "resources"]
+  when: pangolin_manage_resources | default(true)
+
+- name: Include host configuration tasks
+  include_tasks: host_configuration.yml
+  tags: ["pangolin", "hosts"]
+  when: pangolin_manage_hosts | default(true)
+
+- name: Include auth bypass configuration
+  include_tasks: auth_bypass.yml
+  tags: ["pangolin", "auth-bypass"]
+  when: auth_bypass_enabled | default(true)
+# - name: Include user management tasks
+#   include_tasks: user_management.yml
+#   tags: ["pangolin", "users"]
+#   when: pangolin_manage_users | default(true)
+
+# - name: Include client deployment tasks
+#   include_tasks: client_deployment.yml
+#   tags: ["pangolin", "clients"]
+#   when: pangolin_newt_enabled | default(false)
+
+# - name: Include certificate management tasks
+#   include_tasks: certificate_management.yml
+#   tags: ["pangolin", "certificates"]
+#   when: pangolin_ssl_enabled | default(true)
+
+# - name: Include monitoring and verification tasks
+#   include_tasks: monitoring.yml
+#   tags: ["pangolin", "monitoring"]
+#   when: pangolin_health_checks | default(true)
+
+# - name: Display completion summary
+#   debug:
+#     msg: |
+#       ✅ Pangolin Infrastructure Ready!
+#
+#       🔗 Active Sites: {{ final_site_count | default('Unknown') }}
+#       📊 Resources: {{ final_resource_count | default('Unknown') }}
+#       🔐 SSL Status: {{ 'Enabled' if pangolin_ssl_enabled else 'Disabled' }}
+#       🐳 Clients: {{ 'Deployed' if pangolin_newt_enabled else 'Standalone' }}
+#
+#       Next: Access services through secure tunnels

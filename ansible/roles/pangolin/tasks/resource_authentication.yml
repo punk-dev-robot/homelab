@@ -1,0 +1,16 @@
+---
+# Resource Authentication Configuration Tasks
+# Admin users automatically get access to all resources (per Pangolin documentation)
+# No explicit role assignment needed for Admin role
+
+- name: Display resource authentication status for {{ resource_name }}
+  debug:
+    msg: |
+      🔐 AUTHENTICATION STATUS for {{ resource_name }}:
+
+      ✅ Admin users: Automatic access (built-in Admin role behavior)
+      📝 Member users: Would need explicit role assignment (none configured currently)
+      🔗 Resource URL: https://{{ resource_name }}.nobasura.org
+
+      Note: All resources use Platform SSO by default. Users are redirected to
+      Pangolin auth if not already logged in.

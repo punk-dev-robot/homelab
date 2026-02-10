@@ -1,0 +1,18 @@
+include:
+  - gluetun.yml
+  - deluge.yml
+
+  - prowlarr.yml
+  - bazarr.yml
+  - radarr.yml
+  - sonarr.yml
+  - whisparr.yml
+  - notifiarr.yml
+
+  - lidarr.yml
+  # - readarr.yml  # Temporarily disabled - image has no amd64 manifest
+  - recyclarr.yml
+  - flaresolverr.yml
+
+  - nzbget.yml
+  - sabnzbd.yml

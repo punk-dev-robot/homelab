@@ -1,0 +1,108 @@
+x-common-env: &common-env
+  REDIS_URL: redis://redis:6379
+  REDIS_RATE_LIMIT_URL: redis://redis:6379
+  PLAYWRIGHT_MICROSERVICE_URL: http://playwright-service:3000/scrape
+  LOGGING_LEVEL: DEBUG
+  BULL_AUTH_KEY: CHANGEME
+  NUM_WORKERS_PER_QUEUE: 8
+  SCRAPE_TIMEOUT: 120000
+  JOB_TIMEOUT: 120000
+  PLAYWRIGHT_TIMEOUT: 90000
+  DEFAULT_TIMEOUT: 30000
+
+services:
+  api:
+    extends:
+      file: ../common.yml
+      service: base
+    image: ghcr.io/mendableai/firecrawl:latest
+    container_name: firecrawl_api
+    ports:
+      - "3002:3002"
+    environment:
+      <<: *common-env
+      USE_DB_AUTHENTICATION: false
+      PORT: 3002
+      HOST: "0.0.0.0"
+      FLY_PROCESS_GROUP: "app"
+      # NODE_ENV: development
+    depends_on:
+      - redis
+      - playwright-service
+    networks:
+      - firecrawl_backend
+    command: ["pnpm", "run", "start:production"]
+    labels:
+      - "deunhealth.restart.on.unhealthy=true"
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "node",
+          "-e",
+          "require('http').get('http://localhost:3002/', (res) => process.exit(res.statusCode === 200 ? 0 : 1)).on('error', () => process.exit(1))",
+        ]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+
+  worker:
+    extends:
+      file: ../common.yml
+      service: base
+    image: ghcr.io/mendableai/firecrawl:latest
+    container_name: firecrawl_worker
+    environment:
+      <<: *common-env
+      FLY_PROCESS_GROUP: "worker"
+    depends_on:
+      - redis
+      - playwright-service
+      - api
+    networks:
+      - firecrawl_backend
+    command: ["pnpm", "run", "workers"]
+
+  playwright-service:
+    extends:
+      file: ../common.yml
+      service: base
+    image: punkdevrobot/firecrawl-playwright:latest
+    container_name: firecrawl_playwright
+    environment:
+      - PORT=3000
+    networks:
+      - firecrawl_backend
+
+  redis:
+    extends:
+      file: ../common.yml
+      service: base
+    image: redis:alpine
+    container_name: firecrawl_redis
+    # volumes:
+    #   - redis_data:/data
+    command: redis-server --bind 0.0.0.0
+    # command: redis-server --appendonly yes
+    networks:
+      - firecrawl_backend
+    labels:
+      - "deunhealth.restart.on.unhealthy=true"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+networks:
+  firecrawl_backend:
+    driver: bridge
+
+volumes:
+  firecrawl_data:
+    name: firecrawl_data
+    driver: local
+  # redis_data:
+  #   name: firecrawl_redis_data
+  #   driver: local

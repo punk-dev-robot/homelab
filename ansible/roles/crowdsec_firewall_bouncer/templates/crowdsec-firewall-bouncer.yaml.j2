@@ -1,0 +1,55 @@
+mode: iptables
+update_frequency: 10s
+
+log_mode: file
+log_dir: /var/log/
+log_level: info
+log_compression: true
+log_max_size: 100
+log_max_backups: 3
+log_max_age: 30
+
+# API Configuration - connects to CrowdSec LAPI in Docker container
+api_url: http://127.0.0.1:8080/
+api_key: {{ crowdsec_firewall_bouncer_api_key }}
+
+# TLS Configuration (not needed for local Docker communication)
+insecure_skip_verify: false
+
+# IPv6 Configuration
+disable_ipv6: false
+
+# Firewall Action Configuration
+deny_action: DROP
+deny_log: true
+deny_log_prefix: "CrowdSec SSH Block: "
+
+# Decision Types to Act Upon
+supported_decisions_types:
+  - ban
+
+# IPSet Configuration
+blacklists_ipv4: crowdsec-blacklists
+blacklists_ipv6: crowdsec6-blacklists
+ipset_type: nethash
+
+# IPTables Chain Configuration
+# INPUT: Blocks incoming connections (SSH, etc.)
+# DOCKER-USER: Blocks access to containerized services
+iptables_chains:
+  - INPUT
+  - DOCKER-USER
+
+# Enable rule comments for better tracking
+iptables_add_rule_comments: true
+
+# Scenario Filtering - Focus on SSH attacks for this bouncer
+scenarios_containing:
+  - "ssh"
+  - "brute"
+
+# Metrics Configuration
+prometheus:
+  enabled: false
+  listen_addr: 127.0.0.1
+  listen_port: 60601

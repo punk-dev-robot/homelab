@@ -1,0 +1,49 @@
+---
+# Common Proxmox settings for all nodes
+
+# Repository configuration
+pve_repository_line: "deb http://download.proxmox.com/debian/pve bookworm pve-no-subscription"
+pve_remove_subscription_warning: true
+pve_run_proxmox_tasks: true
+
+# SSH Configuration defaults
+sshd_config:
+  PermitRootLogin: "prohibit-password"
+  PasswordAuthentication: "no"
+  PubkeyAuthentication: "yes"
+  X11Forwarding: "no"
+  UseDNS: "no"
+
+# Essential packages for Proxmox hypervisor management
+# Minimal set - focusing on hypervisor administration needs
+essential_packages:
+  - curl         # Downloads and API calls
+  - wget         # Downloads
+  - tmux         # Terminal multiplexer for long-running tasks
+  - screen       # Terminal multiplexer backup
+  - rsync        # File sync and backups
+  - tcpdump      # Network debugging for VMs/containers
+  - net-tools    # Basic network utilities (netstat, ifconfig)
+  - pciutils     # Hardware info (lspci) - essential for GPU passthrough
+  - usbutils     # USB info (lsusb) - useful for device passthrough
+  - htop         # Process monitoring
+  - iotop        # I/O monitoring for storage performance
+  - lsof         # File/network debugging
+
+# Admin user configuration
+admin_user: kuba
+admin_groups:
+  - sudo
+
+# Time configuration
+timezone: Europe/London
+ntp_servers:
+  - 10.10.101.1  # OPNsense as primary NTP
+  - time.google.com
+  - time.cloudflare.com
+
+# Don't modify network configuration (we manage it separately)
+pve_manage_network: false
+
+# Performance settings
+vm_swappiness: 10

@@ -1,0 +1,17 @@
+services:
+  uptime-kuma:
+    extends:
+      file: ../common.yml
+      service: base
+    image: louislam/uptime-kuma
+    container_name: uptime-kuma
+    volumes:
+      - uptime-kuma-data:/app/data
+    ports:
+      - 3001:3001
+    environment:
+      - UPTIME_KUMA_LOG_RESPONSE_BODY_MONITOR_ID=1
+
+volumes:
+  uptime-kuma-data:
+    name: uptime-kuma-data

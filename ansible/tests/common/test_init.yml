@@ -1,0 +1,18 @@
+---
+# Test framework initialization
+# Centralized initialization of test variables and configuration
+
+- name: Initialize test framework
+  set_fact:
+    test_results: "{{ test_results | default([]) }}"
+    test_summary: "{{ test_summary | default({'total': 0, 'passed': 0, 'failed': 0, 'critical_failures': []}) }}"
+    start_time: "{{ start_time | default(ansible_date_time.epoch) }}"
+
+- name: Load test configuration
+  include_vars: test_config.yml
+
+- name: Initialize bypass key (once)
+  set_fact:
+    bypass_key: "{{ lookup('community.general.onepassword', 'TRAEFIK_AUTH_BYPASS_KEY', vault='Homelab') }}"
+  no_log: true
+  when: bypass_key is not defined

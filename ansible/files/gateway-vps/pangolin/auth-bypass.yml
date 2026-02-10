@@ -1,0 +1,20 @@
+name: auth-bypass
+services:
+  auth-bypass:
+    build:
+      context: ./auth-bypass
+      dockerfile: Dockerfile
+    container_name: auth-bypass
+    restart: unless-stopped
+    environment:
+      - TRAEFIK_AUTH_BYPASS_KEY=${TRAEFIK_AUTH_BYPASS_KEY}
+      - PORT=8080
+    labels:
+      - "deunhealth.restart.on.unhealthy=true"
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:8080/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    ports:
+      - "9847:8080" # Hard-to-guess port for security
