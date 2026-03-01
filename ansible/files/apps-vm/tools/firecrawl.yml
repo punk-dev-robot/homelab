@@ -2,21 +2,25 @@ x-common-env: &common-env
   REDIS_URL: redis://redis:6379
   REDIS_RATE_LIMIT_URL: redis://redis:6379
   PLAYWRIGHT_MICROSERVICE_URL: http://playwright-service:3000/scrape
-  LOGGING_LEVEL: DEBUG
   BULL_AUTH_KEY: CHANGEME
   NUM_WORKERS_PER_QUEUE: 8
-  SCRAPE_TIMEOUT: 120000
-  JOB_TIMEOUT: 120000
-  PLAYWRIGHT_TIMEOUT: 90000
-  DEFAULT_TIMEOUT: 30000
+  CRAWL_CONCURRENT_REQUESTS: 10
+  MAX_CONCURRENT_JOBS: 10
+  BROWSER_POOL_SIZE: 5
+  POSTGRES_USER: firecrawl
+  POSTGRES_PASSWORD: firecrawl
+  POSTGRES_DB: firecrawl
+  POSTGRES_HOST: nuq-postgres
+  POSTGRES_PORT: "5432"
 
 services:
   api:
     extends:
       file: ../common.yml
       service: base
-    image: ghcr.io/mendableai/firecrawl:latest
+    image: ghcr.io/firecrawl/firecrawl:latest
     container_name: firecrawl_api
+    command: ["node", "dist/src/harness.js", "--start-docker"]
     ports:
       - "3002:3002"
     environment:
@@ -24,14 +28,25 @@ services:
       USE_DB_AUTHENTICATION: false
       PORT: 3002
       HOST: "0.0.0.0"
-      FLY_PROCESS_GROUP: "app"
-      # NODE_ENV: development
+      NUQ_RABBITMQ_URL: amqp://guest:guest@rabbitmq:5672
+      LOGGING_LEVEL: DEBUG
     depends_on:
-      - redis
-      - playwright-service
+      redis:
+        condition: service_started
+      playwright-service:
+        condition: service_started
+      rabbitmq:
+        condition: service_healthy
+      nuq-postgres:
+        condition: service_healthy
     networks:
       - firecrawl_backend
-    command: ["pnpm", "run", "start:production"]
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    ulimits:
+      nofile:
+        soft: 65535
+        hard: 65535
     labels:
       - "deunhealth.restart.on.unhealthy=true"
     healthcheck:
@@ -47,33 +62,57 @@ services:
       retries: 3
       start_period: 60s
 
-  worker:
-    extends:
-      file: ../common.yml
-      service: base
-    image: ghcr.io/mendableai/firecrawl:latest
-    container_name: firecrawl_worker
-    environment:
-      <<: *common-env
-      FLY_PROCESS_GROUP: "worker"
-    depends_on:
-      - redis
-      - playwright-service
-      - api
-    networks:
-      - firecrawl_backend
-    command: ["pnpm", "run", "workers"]
-
   playwright-service:
     extends:
       file: ../common.yml
       service: base
-    image: punkdevrobot/firecrawl-playwright:latest
+    image: ghcr.io/firecrawl/playwright-service:latest
     container_name: firecrawl_playwright
     environment:
-      - PORT=3000
+      PORT: 3000
+      BLOCK_MEDIA: true
+      MAX_CONCURRENT_PAGES: 10
+    tmpfs:
+      - /tmp
+      - /ms-playwright
     networks:
       - firecrawl_backend
+
+  rabbitmq:
+    extends:
+      file: ../common.yml
+      service: base
+    image: rabbitmq:3-management
+    container_name: firecrawl_rabbitmq
+    networks:
+      - firecrawl_backend
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "-q", "check_running"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+
+  nuq-postgres:
+    extends:
+      file: ../common.yml
+      service: base
+    image: ghcr.io/firecrawl/nuq-postgres:latest
+    container_name: firecrawl_nuq_postgres
+    environment:
+      POSTGRES_USER: firecrawl
+      POSTGRES_PASSWORD: firecrawl
+      POSTGRES_DB: firecrawl
+    volumes:
+      - firecrawl_postgres_data:/var/lib/postgresql/data
+    networks:
+      - firecrawl_backend
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U firecrawl -d firecrawl"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
 
   redis:
     extends:
@@ -81,14 +120,9 @@ services:
       service: base
     image: redis:alpine
     container_name: firecrawl_redis
-    # volumes:
-    #   - redis_data:/data
     command: redis-server --bind 0.0.0.0
-    # command: redis-server --appendonly yes
     networks:
       - firecrawl_backend
-    labels:
-      - "deunhealth.restart.on.unhealthy=true"
     healthcheck:
       test: ["CMD", "redis-cli", "ping"]
       interval: 30s
@@ -103,6 +137,6 @@ volumes:
   firecrawl_data:
     name: firecrawl_data
     driver: local
-  # redis_data:
-  #   name: firecrawl_redis_data
-  #   driver: local
+  firecrawl_postgres_data:
+    name: firecrawl_postgres_data
+    driver: local
