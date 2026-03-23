@@ -48,6 +48,8 @@ entryPoints:
       respondingTimeouts:
         readTimeout: "30m"
     http:
+      middlewares:
+        - crowdsec-bouncer@file
       tls:
         certResolver: "letsencrypt"
 

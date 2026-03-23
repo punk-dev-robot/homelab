@@ -1,0 +1,12 @@
+/opt/docker/logs/traefik/access.log {
+    daily
+    rotate 7
+    compress
+    delaycompress
+    missingok
+    notifempty
+    maxsize 500M
+    postrotate
+        docker kill --signal=USR1 traefik 2>/dev/null || true
+    endscript
+}

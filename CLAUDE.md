@@ -46,7 +46,7 @@ memory/
 ## 🟢 Current Status
 
 **Version**: Production | **Environment**: Homelab + Gateway VPS
-**Latest Change**: Container availability improvements completed (June 11, 2025)
+**Latest Change**: CrowdSec bouncer fix - entrypoint-level middleware for all routes (March 23, 2026)
 **Health**: All 27+ services accessible, zero ansible-lint violations
 
 ## 🔗 Quick Navigation

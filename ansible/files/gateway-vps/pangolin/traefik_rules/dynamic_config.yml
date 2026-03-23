@@ -9,7 +9,8 @@ http:
         crowdsec-bouncer:
           enabled: true
           logLevel: "INFO"
-          crowdsecMode: "live"
+          crowdsecMode: "stream"
+          updateIntervalSeconds: 15
           crowdsecAppsecEnabled: false
           crowdsecAppsecHost: "crowdsec:7422"
           crowdsecAppsecFailureBlock: true
@@ -58,8 +59,6 @@ http:
       service: next-service
       entryPoints:
         - websecure
-      middlewares:
-        - crowdsec-bouncer
       tls:
         certResolver: letsencrypt
         domains:
@@ -72,8 +71,6 @@ http:
       service: api-service
       entryPoints:
         - websecure
-      middlewares:
-        - crowdsec-bouncer
       tls:
         certResolver: letsencrypt
 
@@ -90,8 +87,6 @@ http:
       service: integration-api-service
       entryPoints:
         - websecure
-      middlewares:
-        - crowdsec-bouncer
       tls:
         certResolver: letsencrypt
 
@@ -118,8 +113,6 @@ http:
       service: authentik-service
       entryPoints:
         - websecure
-      middlewares:
-        - crowdsec-bouncer
       tls:
         certResolver: letsencrypt
 

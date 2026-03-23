@@ -83,6 +83,15 @@
       when: auth_bypass_enabled | default(true)
       tags: ["auth-bypass", "pangolin"]
 
+    - name: Deploy Traefik access log rotation
+      copy:
+        src: files/gateway-vps/logrotate/traefik
+        dest: /etc/logrotate.d/traefik
+        owner: root
+        group: root
+        mode: "0644"
+      tags: ["logrotate", "traefik"]
+
     - name: Wait for CrowdSec container to be ready
       wait_for:
         port: 8080
@@ -105,6 +114,19 @@
         docker exec crowdsec cscli bouncers add crowdsec-firewall-bouncer --key "{{ crowdsec_firewall_bouncer_api_key }}"
       register: firewall_bouncer_result
       failed_when: false
+      tags: ["crowdsec", "bouncers"]
+
+    - name: List auto-created traefik bouncers
+      command: docker exec crowdsec cscli bouncers list -o raw
+      register: bouncer_raw
+      changed_when: false
+      tags: ["crowdsec", "bouncers"]
+
+    - name: Clean up stale auto-created traefik bouncers
+      command: docker exec crowdsec cscli bouncers delete "{{ item }}"
+      loop: "{{ bouncer_raw.stdout_lines | select('match', '^traefik-bouncer@') | map('regex_replace', ',.*', '') | list }}"
+      failed_when: false
+      changed_when: true
       tags: ["crowdsec", "bouncers"]
 
     - name: Verify bouncer registrations
