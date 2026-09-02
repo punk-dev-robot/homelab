@@ -8,7 +8,7 @@ services:
       file: ../common.yml
       service: base
     ports:
-      - 2376:2375
+      - 10.10.10.20:2376:2375 # v4 LAN IP only: no [::] docker-proxy listener bypassing DOCKER-USER (KUB-63)
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock:ro
     read_only: true

@@ -1,0 +1,17 @@
+[Unit]
+Description=DOCKER-USER firewall rules for docker-published ports (KUB-63)
+# Rules must exist before dockerd (re)publishes ports; docker preserves a
+# pre-existing DOCKER-USER chain and adds the FORWARD jump itself.
+Before=docker.service
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+ExecStart=/usr/local/sbin/docker-user-firewall.sh
+# Allow-rule resolution needs DNS; retry until it is up (fail-closed meanwhile).
+Restart=on-failure
+RestartSec=10
+
+[Install]
+WantedBy=multi-user.target

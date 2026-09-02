@@ -1,0 +1,30 @@
+#!/usr/bin/env bash
+# Managed by ansible (roles/docker) — KUB-63.
+# Restrict docker-published ports to allowed source hosts via DOCKER-USER.
+# ufw does NOT filter docker-published ports; DOCKER-USER is the supported hook.
+# Rules match conntrack original dst/port because DNAT happens before FORWARD.
+#
+# Fail-closed by construction: DROP rules use IPs baked in at template time and
+# go in first; the allow rules need DNS and are inserted above them afterwards.
+# If DNS is down at boot the script exits after the DROPs — the port is closed
+# for everyone (including homepage), which is the correct failure direction.
+# The unit retries on failure until DNS is up.
+set -euo pipefail
+
+iptables -N DOCKER-USER 2>/dev/null || true
+iptables -F DOCKER-USER
+
+{% for rule in docker_user_restricted_ports %}
+# port {{ rule.port }} on {{ rule.bind_ip }}: default DROP ({{ rule.comment | default('') }})
+# --ctorigdst scopes to inbound published-port traffic on this host, not
+# containers' outbound connections to remote :{{ rule.port }}.
+iptables -A DOCKER-USER -p tcp -m conntrack --ctorigdst {{ rule.bind_ip }} --ctorigdstport {{ rule.port }} --ctdir ORIGINAL -j DROP
+{% endfor %}
+iptables -A DOCKER-USER -j RETURN
+
+{% for rule in docker_user_restricted_ports %}
+# port {{ rule.port }}: allow {{ rule.allow_host }} (resolved at runtime)
+allow_ip="$(getent ahostsv4 {{ rule.allow_host }} | awk '{print $1; exit}')"
+[ -n "${allow_ip}" ]
+iptables -I DOCKER-USER 1 -p tcp -m conntrack --ctorigdst {{ rule.bind_ip }} --ctorigdstport {{ rule.port }} --ctdir ORIGINAL -s "${allow_ip}" -j RETURN
+{% endfor %}

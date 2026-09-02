@@ -1,0 +1,38 @@
+---
+# KUB-63: source-IP restriction for docker-published ports (DOCKER-USER chain).
+# Enabled per-host via docker_user_restricted_ports in inventory.
+
+- name: Assert bind_ip matches the host primary address
+  ansible.builtin.assert:
+    that: item.bind_ip == ansible_default_ipv4.address
+    fail_msg: "docker_user_restricted_ports bind_ip {{ item.bind_ip }} != host {{ ansible_default_ipv4.address }} — fix inventory + compose bind"
+    quiet: true
+  loop: "{{ docker_user_restricted_ports }}"
+
+- name: Install DOCKER-USER firewall script
+  become: true
+  ansible.builtin.template:
+    src: docker-user-firewall.sh.j2
+    dest: /usr/local/sbin/docker-user-firewall.sh
+    owner: root
+    group: root
+    mode: "0755"
+  register: docker_dufw_script
+
+- name: Install docker-user-firewall systemd unit
+  become: true
+  ansible.builtin.copy:
+    src: docker-user-firewall.service
+    dest: /etc/systemd/system/docker-user-firewall.service
+    owner: root
+    group: root
+    mode: "0644"
+  register: docker_dufw_unit
+
+- name: Enable and apply docker-user-firewall
+  become: true
+  ansible.builtin.systemd_service:
+    name: docker-user-firewall
+    enabled: true
+    daemon_reload: "{{ docker_dufw_unit is changed }}"
+    state: "{{ 'restarted' if (docker_dufw_script is changed or docker_dufw_unit is changed) else 'started' }}"

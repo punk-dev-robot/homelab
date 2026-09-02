@@ -67,6 +67,12 @@ docker:
           NEO4J_AUTH: "neo4j/{{ lookup('community.general.onepassword', 'NEO4J_PASSWORD', vault='Homelab') }}"
     media-vm:
       ansible_host: media.lan
+      # KUB-63: RO socket-proxy reachable from apps-vm (homepage) only
+      docker_user_restricted_ports:
+        - port: 2376
+          bind_ip: 10.10.10.20  # must match the compose ports: bind
+          allow_host: apps.lan
+          comment: socket-proxy-ro for homepage
       stacks: [oam, servarr, jelly]
       # Pangolin configuration - references site definition
       newt_id: "{{ lookup('community.general.onepassword', 'PANGOLIN_MEDIA_SITE_NEWT', field='username', vault='Homelab') }}"
@@ -87,6 +93,12 @@ docker:
           JELLYSTAT_JWT_SECRET: "{{ lookup('community.general.onepassword', 'JELLYSTAT_JWT_SECRET', vault='Homelab') }}"
     obs-vm:
       ansible_host: obs.lan
+      # KUB-63: RO socket-proxy reachable from apps-vm (homepage) only
+      docker_user_restricted_ports:
+        - port: 2377
+          bind_ip: 10.10.10.10  # must match the compose ports: bind
+          allow_host: apps.lan
+          comment: socket-proxy-ro for homepage
       stacks: [oam, obs-apps, grafana, graylog, tick]
       # Pangolin configuration - references site definition
       newt_id: "{{ lookup('community.general.onepassword', 'PANGOLIN_OBS_SITE_NEWT', field='username', vault='Homelab') }}"

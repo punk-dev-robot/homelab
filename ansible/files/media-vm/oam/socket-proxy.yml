@@ -8,8 +8,7 @@ services:
       service: base
     networks:
       - socket_proxy
-    ports:
-      - 2375:2375
+    # KUB-63: no published ports — consumers (watchtower) use the socket_proxy network
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock:ro
     read_only: true

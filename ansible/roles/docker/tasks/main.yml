@@ -2,6 +2,10 @@
   include_tasks: setup.yml
   when: docker_setup
 
+- name: Docker host firewall (DOCKER-USER)
+  include_tasks: firewall.yml
+  when: docker_user_restricted_ports is defined
+
 - name: Deploying stack
   include_tasks: deploy_stack.yml
   when: docker_deploy
