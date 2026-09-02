@@ -51,6 +51,24 @@ scrape_configs:
       - target_label: __address__
         replacement: pbs-exporter:10019 # pbs-exporter address
 
+  - job_name: "blackbox-backup-hosts"
+    scrape_interval: 60s
+    scrape_timeout: 15s
+    metrics_path: /probe
+    params:
+      module: [http_2xx_insecure]
+    static_configs:
+      - targets:
+          - https://truenas.lan
+          - https://10.10.10.34:8007 # PBS UI on zima
+    relabel_configs:
+      - source_labels: [__address__]
+        target_label: __param_target
+      - source_labels: [__param_target]
+        target_label: instance
+      - target_label: __address__
+        replacement: blackbox-exporter:9115
+
   - job_name: "pihole"
     scrape_interval: 15s
     scrape_timeout: 10s

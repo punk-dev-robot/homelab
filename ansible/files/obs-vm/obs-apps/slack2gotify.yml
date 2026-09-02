@@ -1,0 +1,15 @@
+services:
+  slack2gotify:
+    extends:
+      file: ../common.yml
+      service: base
+    image: python:3.13-alpine
+    container_name: slack2gotify
+    command: ["python", "/app/slack2gotify.py"]
+    volumes:
+      - ./slack2gotify.py:/app/slack2gotify.py:ro
+    ports:
+      - 31662:31662 # TrueNAS Slack-type alert service posts here
+    environment:
+      GOTIFY_URL: http://gotify:80
+      GOTIFY_TOKEN: ${GOTIFY_ALERT_TOKEN}

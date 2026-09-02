@@ -1,0 +1,92 @@
+apiVersion: 1
+
+contactPoints:
+  - orgId: 1
+    name: gotify
+    receivers:
+      - uid: gotify-webhook
+        type: webhook
+        settings:
+          # Gotify binds title/message from Grafana's webhook JSON directly
+          # (verified live); extra fields are ignored.
+          url: http://gotify:80/message?token=$GOTIFY_ALERT_TOKEN
+          httpMethod: POST
+        disableResolveMessage: false
+
+policies:
+  - orgId: 1
+    receiver: gotify
+    group_by: ["alertname"]
+    group_wait: 30s
+    group_interval: 5m
+    repeat_interval: 12h
+
+groups:
+  - orgId: 1
+    name: backup-safety
+    folder: Backup safety (KUB-54)
+    interval: 5m
+    rules:
+      - uid: kub54-pbs-down
+        title: PBS unreachable (zima)
+        condition: C
+        for: 15m
+        noDataState: Alerting
+        execErrState: Alerting
+        annotations:
+          summary: pbs-exporter cannot reach PBS at 10.10.10.34:8007 (zima down or PBS service dead)
+        data:
+          - refId: A
+            relativeTimeRange: { from: 600, to: 0 }
+            datasourceUid: prom-alerts
+            model: { expr: "min(pbs_up)", instant: true, refId: A }
+          - refId: C
+            datasourceUid: __expr__
+            model:
+              type: threshold
+              expression: A
+              refId: C
+              conditions:
+                - evaluator: { type: lt, params: [1] }
+      - uid: kub54-backup-stale
+        title: PBS backups stale (>36h without a new snapshot)
+        condition: C
+        for: 30m
+        noDataState: Alerting
+        execErrState: Alerting
+        annotations:
+          summary: No new PBS snapshot in over 36 hours (or PBS metrics missing entirely)
+        data:
+          - refId: A
+            relativeTimeRange: { from: 600, to: 0 }
+            datasourceUid: prom-alerts
+            model: { expr: "time() - max(pbs_snapshot_vm_last_backup)", instant: true, refId: A }
+          - refId: C
+            datasourceUid: __expr__
+            model:
+              type: threshold
+              expression: A
+              refId: C
+              conditions:
+                - evaluator: { type: gt, params: [129600] }
+      - uid: kub54-backup-host-down
+        title: Backup-critical host probe failing
+        condition: C
+        for: 10m
+        noDataState: Alerting
+        execErrState: Alerting
+        annotations:
+          summary: "Blackbox probe failing for {{ $labels.instance }} (TrueNAS / PBS UI)"
+        data:
+          - refId: A
+            relativeTimeRange: { from: 600, to: 0 }
+            datasourceUid: prom-alerts
+            model: { expr: "min by (instance) (probe_success{job=\"blackbox-backup-hosts\"})", instant: true, refId: A }
+          - refId: C
+            datasourceUid: __expr__
+            model:
+              type: threshold
+              expression: A
+              refId: C
+              conditions:
+                - evaluator: { type: lt, params: [1] }

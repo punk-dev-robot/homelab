@@ -101,6 +101,9 @@ docker:
         grafana:
           PBS_API_TOKEN: "{{ lookup('community.general.onepassword', 'PBS_API_TOKEN', vault='Homelab') }}"
           PIHOLE_API_TOKEN: "{{ lookup('community.general.onepassword', 'PIHOLE_API_TOKEN', vault='Homelab') }}"
+          GOTIFY_ALERT_TOKEN: "{{ lookup('community.general.onepassword', 'AGENT_GOTIFY_TOKEN', field='credential', vault='Homelab') }}"
+        obs-apps:
+          GOTIFY_ALERT_TOKEN: "{{ lookup('community.general.onepassword', 'AGENT_GOTIFY_TOKEN', field='credential', vault='Homelab') }}"
         graylog:
           DATANODE_PASSWORD_SECRET: "{{ lookup('community.general.onepassword', 'GRAYLOG_PASSWORD_SECRET', vault='Homelab') }}"
           DATANODE_ROOT_PASSWORD_SHA2: "{{ lookup('community.general.onepassword', 'GRAYLOG_ROOT_PASSWORD_SHA2', vault='Homelab') }}"

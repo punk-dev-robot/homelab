@@ -9,5 +9,6 @@ include:
   - beszel.yml
   - dozzle.yml
   - gotify.yml
+  - slack2gotify.yml
   - portainer.yml
   - uptime-kuma.yml
