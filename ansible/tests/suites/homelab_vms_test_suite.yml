@@ -20,7 +20,7 @@
         proxy_domain: "apps.lab.nobasura.org"
         services:
           - name: "homepage"
-            port: 3000
+            port: 3001
             path: "/"
             expected_status: 200
           - name: "atuin"
