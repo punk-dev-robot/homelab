@@ -1,0 +1,37 @@
+---
+# Direct .lan access tests for one VM (invoked per vm_name from the suite loop)
+- name: "Probe {{ vm_name }} services directly ({{ homelab_services[vm_name].host }})"
+  ansible.builtin.uri:
+    url: "http://{{ homelab_services[vm_name].host }}:{{ item.port }}{{ item.path }}"
+    follow_redirects: safe
+    status_code: "{{ item.expected_status }}"
+    timeout: 10
+  register: direct_probes
+  ignore_errors: true
+  loop: "{{ homelab_services[vm_name].services }}"
+  loop_control:
+    label: "{{ item.name }}"
+  tags: ["direct", "smoke", "always"]
+
+- name: "Record {{ vm_name }} direct access results"
+  ansible.builtin.set_fact:
+    test_results: "{{ test_results + vm_direct_results }}"
+    test_summary:
+      total: "{{ test_summary.total | int + vm_direct_results | length }}"
+      passed: "{{ test_summary.passed | int + vm_direct_results | selectattr('status', 'eq', 'PASS') | list | length }}"
+      failed: "{{ test_summary.failed | int + vm_direct_results | selectattr('status', 'eq', 'FAIL') | list | length }}"
+      critical_failures: "{{ test_summary.critical_failures + vm_direct_results | selectattr('status', 'eq', 'FAIL') | map(attribute='name') | list }}"
+  vars:
+    vm_direct_results: >-
+      {%- set out = [] -%}
+      {%- for r in direct_probes.results -%}
+      {%- set _ = out.append({
+            'name': vm_name ~ '/' ~ r.item.name ~ ' (direct)',
+            'status': 'PASS' if not (r.failed | default(false)) else 'FAIL',
+            'expected': r.item.expected_status,
+            'actual': r.status | default('no response'),
+            'error': r.msg | default('') if (r.failed | default(false)) else '',
+            'critical': true}) -%}
+      {%- endfor -%}
+      {{ out }}
+  tags: ["direct", "smoke", "always"]

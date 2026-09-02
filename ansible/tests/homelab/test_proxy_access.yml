@@ -1,0 +1,39 @@
+---
+# Caddy proxy access tests for one VM (invoked per vm_name from the suite loop)
+# Each service is exposed as <service>.lab.nobasura.org; auth redirects count as
+# reachable, so any routed response (2xx/3xx/401) passes — 502/timeouts fail.
+- name: "Probe {{ vm_name }} services via Caddy proxy (.lab.nobasura.org)"
+  ansible.builtin.uri:
+    url: "https://{{ item.name }}.lab.nobasura.org/"
+    follow_redirects: none
+    status_code: [200, 204, 301, 302, 303, 307, 308, 401]
+    timeout: 10
+  register: proxy_probes
+  ignore_errors: true
+  loop: "{{ homelab_services[vm_name].services }}"
+  loop_control:
+    label: "{{ item.name }}"
+  tags: ["proxy", "always"]
+
+- name: "Record {{ vm_name }} proxy access results"
+  ansible.builtin.set_fact:
+    test_results: "{{ test_results + vm_proxy_results }}"
+    test_summary:
+      total: "{{ test_summary.total | int + vm_proxy_results | length }}"
+      passed: "{{ test_summary.passed | int + vm_proxy_results | selectattr('status', 'eq', 'PASS') | list | length }}"
+      failed: "{{ test_summary.failed | int + vm_proxy_results | selectattr('status', 'eq', 'FAIL') | list | length }}"
+      critical_failures: "{{ test_summary.critical_failures }}"
+  vars:
+    vm_proxy_results: >-
+      {%- set out = [] -%}
+      {%- for r in proxy_probes.results -%}
+      {%- set _ = out.append({
+            'name': vm_name ~ '/' ~ r.item.name ~ ' (proxy)',
+            'status': 'PASS' if not (r.failed | default(false)) else 'FAIL',
+            'expected': 'routed response (2xx/3xx/401)',
+            'actual': r.status | default('no response'),
+            'error': r.msg | default('') if (r.failed | default(false)) else '',
+            'critical': false}) -%}
+      {%- endfor -%}
+      {{ out }}
+  tags: ["proxy", "always"]
