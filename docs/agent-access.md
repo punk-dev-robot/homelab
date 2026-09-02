@@ -19,7 +19,7 @@ Unattended access for the manager agent. No secrets in this file.
 | TrueNAS REST v2.0 (`https://10.10.10.31/api/v2.0`) | `Authorization: Bearer <key>` | 1P Homelab `TRUENAS_AGENT_API_KEY` (api_key id 1, user kuba) |
 | PBS API (`https://10.10.10.34:8007`) | ticket via `backup@pbs` | password: `/etc/pve/priv/storage/pbs-zima.pw` on any PVE node; root ssh preferred |
 | PVE API | not provisioned | root ssh + `pvesh` covers it (YAGNI; add token when an MCP needs it) |
-| Gotify (`https://gotify.lab.nobasura.org`) | `X-Gotify-Key: <token>` | 1P Homelab `AGENT_GOTIFY_TOKEN` (app "homelab-agent") |
+| Gotify (`https://gotify.lab.nobasura.org`, ext `gotify.nobasura.org`) | `X-Gotify-Key: <token>` | 1P Homelab `AGENT_GOTIFY_TOKEN` (app "homelab-agent"). Pangolin SSO disabled for this resource — Gotify native auth is the perimeter (mobile app breaks on SSO interstitial; Pangolin path rules are exact-match, `*` = single segment) |
 
 ## 1Password (non-interactive)
 
