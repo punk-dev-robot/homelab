@@ -50,8 +50,8 @@ services:
       - PBS_LOGLEVEL=debug
       - PBS_ENDPOINT=https://10.10.10.34:8007 # zima/kbs (KUB-54: was stale .30)
       - PBS_INSECURE=true
-      # - PBS_USERNAME=pbs-expoerter@pbs
-      # - PBS_API_TOKEN_NAME=pbs-exporter
+      - PBS_USERNAME=pbs-exporter@pbs
+      - PBS_API_TOKEN_NAME=pbs-exporter
       - PBS_API_TOKEN=${PBS_API_TOKEN}
 
   blackbox-exporter:
