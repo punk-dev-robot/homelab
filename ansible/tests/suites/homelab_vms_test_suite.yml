@@ -24,7 +24,7 @@
             path: "/"
             expected_status: 200
           - name: "atuin"
-            port: 8888
+            port: 12321
             path: "/"
             expected_status: 200
           - name: "neo4j"
