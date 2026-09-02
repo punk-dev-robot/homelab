@@ -20,9 +20,9 @@ To add new admin IPs (office, mobile, backup locations), edit these files:
    `/config/crowdsec/profiles.yaml`
    - Update the filter condition in `whitelist_admin_ips` profile
 
-3. **Scenario Protection** (extra safety):
-   `/config/crowdsec/scenarios/custom-whitelist-protection.yaml`
-   - Update the filter to exclude new IPs
+> Note: the former "scenario protection" (custom-whitelist-protection.yaml) was removed —
+> a `type: trigger` scenario fired on every non-admin event, flooding console alert quota.
+> Scenarios cannot whitelist; the parser whitelist above is the protection.
 
 ## Best Practices
 

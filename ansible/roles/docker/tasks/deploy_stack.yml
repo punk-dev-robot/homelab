@@ -75,8 +75,15 @@
       dest: "profiles.yaml"
     - src: "config/crowdsec/whitelists.yaml.j2"
       dest: "whitelists.yaml"
-    - src: "config/crowdsec/scenarios/custom-whitelist-protection.yaml.j2"
-      dest: "scenarios/custom-whitelist-protection.yaml"
+  when: cur_stack == 'pangolin'
+
+# custom/whitelist-protection scenario removed (KUB-50 follow-up): type:trigger fired on
+# every non-admin event (~56% of console alert quota). IP protection is handled by the
+# parser whitelist (custom-admin-whitelist.yaml + whitelists.yaml); scenarios can't whitelist.
+- name: Remove broken custom whitelist-protection scenario
+  file:
+    path: "{{ docker_compose_dir }}/crowdsec/config/crowdsec/scenarios/custom-whitelist-protection.yaml"
+    state: absent
   when: cur_stack == 'pangolin'
 
 - name: Ensure services are running ({{ cur_stack }})
