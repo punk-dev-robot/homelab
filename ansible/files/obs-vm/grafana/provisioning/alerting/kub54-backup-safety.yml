@@ -60,7 +60,7 @@ groups:
           - refId: A
             relativeTimeRange: { from: 600, to: 0 }
             datasourceUid: prom-alerts
-            model: { expr: "time() - max(pbs_snapshot_vm_last_backup)", instant: true, refId: A }
+            model: { expr: "time() - max(pbs_snapshot_vm_last_timestamp)", instant: true, refId: A }
           - refId: C
             datasourceUid: __expr__
             model:
