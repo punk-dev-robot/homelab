@@ -62,7 +62,7 @@ services:
       - ${APP_DATA}/pangolin/secrets:/secrets:ro
 
   crowdsec:
-    image: crowdsecurity/crowdsec:latest-debian
+    image: crowdsecurity/crowdsec:v1.8.0-debian
     container_name: crowdsec
     restart: unless-stopped
     environment:
