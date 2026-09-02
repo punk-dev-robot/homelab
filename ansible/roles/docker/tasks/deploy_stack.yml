@@ -17,13 +17,64 @@
     state: directory
     mode: "0755"
 
+# Homepage widget API keys are read at deploy time from the services' own live
+# configs on media-vm — the service config is the single source of truth, keys
+# survive rotation, and nothing secret lands in git or 1Password.
+- name: Collect homepage widget API keys from live service configs (lab)
+  become: true
+  delegate_to: media-vm
+  ansible.builtin.command:
+    cmd: python3
+    stdin: |
+      import json, re, sqlite3
+      out = {}
+      def xml_key(path):
+          m = re.search(r"<ApiKey>([^<]+)</ApiKey>", open(path).read())
+          return m.group(1) if m else None
+      for svc, path in {
+          "SONARR": "/opt/docker/appdata/sonarr/config/config.xml",
+          "RADARR": "/opt/docker/appdata/radarr/config/config.xml",
+          "LIDARR": "/opt/docker/appdata/lidarr/config.xml",
+          "PROWLARR": "/opt/docker/appdata/prowlarr/config.xml",
+      }.items():
+          try:
+              out["HOMEPAGE_VAR_%s_KEY" % svc] = xml_key(path)
+          except OSError:
+              pass
+      try:
+          m = re.search(r"apikey:\s*(\S+)",
+                        open("/opt/docker/appdata/bazarr/config/config.yaml").read())
+          if m:
+              out["HOMEPAGE_VAR_BAZARR_KEY"] = m.group(1)
+      except OSError:
+          pass
+      try:
+          c = sqlite3.connect("file:/opt/docker/appdata/jellyfin/data/data/jellyfin.db?mode=ro", uri=True)
+          r = c.execute("select AccessToken from ApiKeys where Name='Homepage'").fetchone()
+          if r:
+              out["HOMEPAGE_VAR_JELLYFIN_KEY"] = r[0]
+      except sqlite3.Error:
+          pass
+      print(json.dumps({k: v for k, v in out.items() if v}))
+  register: docker_homepage_widget_keys_raw
+  changed_when: false
+  no_log: true
+  when: cur_stack == 'lab'
+
+- name: Parse homepage widget API keys
+  set_fact:
+    docker_homepage_widget_env: "{{ docker_homepage_widget_keys_raw.stdout | from_json }}"
+  no_log: true
+  when: cur_stack == 'lab'
+
 - name: Generate env file {{ cur_stack }}
   vars:
     stack_env_vars: >-
       {{ docker_env_vars.common | combine(
         docker_env_vars[cur_stack] | default({}),
         env_vars.common | default({}),
-        env_vars[cur_stack] | default({})
+        env_vars[cur_stack] | default({}),
+        docker_homepage_widget_env | default({})
       ) }}
   copy:
     content: |

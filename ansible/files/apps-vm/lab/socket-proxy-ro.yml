@@ -1,0 +1,30 @@
+services:
+  # Read-only Docker socket proxy for homepage (KUB-61 pass 2).
+  # Separate from oam's socket-proxy, which must allow POST/start/stop for
+  # watchtower — homepage only needs to read container state.
+  socket-proxy-ro:
+    image: linuxserver/socket-proxy:3.2.10-r0-ls67
+    container_name: socket-proxy-ro
+    extends:
+      file: ../common.yml
+      service: base
+    networks:
+      - socket_proxy_ro
+    # no host ports: reachable only from containers on socket_proxy_ro
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+    read_only: true
+    tmpfs:
+      - /run
+    environment:
+      - EVENTS=1
+      - PING=1
+      - VERSION=1
+      - POST=0 # read-only
+      - CONTAINERS=1 # homepage container status
+    labels:
+      - deunhealth.restart.on.unhealthy=true
+
+networks:
+  socket_proxy_ro:
+    name: socket_proxy_ro

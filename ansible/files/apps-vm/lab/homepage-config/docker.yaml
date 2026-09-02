@@ -1,7 +1,14 @@
 ---
 # https://gethomepage.dev/configs/docker/
-# apps-vm only: via the oam stack's socket-proxy (see lab/homepage.yml — direct socket mount is EACCES for homepage's non-root server).
-# Remote VMs (media/obs) would need docker TCP exposure — pass 2.
+# apps-vm: via the lab stack's own read-only socket-proxy-ro (no POST — the oam
+#   proxy allows start/stop for watchtower and must not be homepage-reachable).
+# media/obs VMs: read-only socket proxies published on :2376 (oam stacks).
 apps-docker:
-  host: socket-proxy
+  host: socket-proxy-ro
   port: 2375
+media-docker:
+  host: media.lan
+  port: 2376
+obs-docker:
+  host: obs.lan
+  port: 2377

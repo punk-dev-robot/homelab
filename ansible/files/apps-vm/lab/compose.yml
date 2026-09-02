@@ -1,2 +1,3 @@
 include:
   - homepage.yml
+  - socket-proxy-ro.yml

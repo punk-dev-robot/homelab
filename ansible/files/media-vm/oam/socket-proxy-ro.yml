@@ -1,0 +1,24 @@
+services:
+  # Read-only Docker socket proxy, published on 2376 for homepage on apps-vm
+  # (KUB-61 pass 2: remote docker status without write access).
+  socket-proxy-ro:
+    image: linuxserver/socket-proxy:3.2.9-r0-ls63
+    container_name: socket-proxy-ro
+    extends:
+      file: ../common.yml
+      service: base
+    ports:
+      - 2376:2375
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+    read_only: true
+    tmpfs:
+      - /run
+    environment:
+      - EVENTS=1
+      - PING=1
+      - VERSION=1
+      - POST=0 # read-only
+      - CONTAINERS=1 # homepage container status
+    labels:
+      - deunhealth.restart.on.unhealthy=true

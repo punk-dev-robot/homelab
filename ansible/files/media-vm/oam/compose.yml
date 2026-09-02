@@ -4,6 +4,7 @@ networks:
 
 include:
   - socket-proxy.yml
+  - socket-proxy-ro.yml
   - deunhealth.yml
   - docker-gc.yml
   - watchtower.yml

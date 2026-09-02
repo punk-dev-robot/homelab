@@ -8,15 +8,24 @@ services:
     ports:
       - 3001:3000
     networks:
-      - socket_proxy
+      - socket_proxy_ro
     volumes:
       - ./homepage-config/:/app/config
     environment:
       HOMEPAGE_ALLOWED_HOSTS: homepage.lab.nobasura.org,apps.lan:3001
+      # Widget API keys — injected into .env at deploy time from the services'
+      # own live configs on media-vm (see roles/docker/tasks/deploy_stack.yml).
+      HOMEPAGE_VAR_JELLYFIN_KEY: ${HOMEPAGE_VAR_JELLYFIN_KEY:-}
+      HOMEPAGE_VAR_SONARR_KEY: ${HOMEPAGE_VAR_SONARR_KEY:-}
+      HOMEPAGE_VAR_RADARR_KEY: ${HOMEPAGE_VAR_RADARR_KEY:-}
+      HOMEPAGE_VAR_LIDARR_KEY: ${HOMEPAGE_VAR_LIDARR_KEY:-}
+      HOMEPAGE_VAR_PROWLARR_KEY: ${HOMEPAGE_VAR_PROWLARR_KEY:-}
+      HOMEPAGE_VAR_BAZARR_KEY: ${HOMEPAGE_VAR_BAZARR_KEY:-}
 
-# socket-proxy lives in the oam stack; direct docker.sock mount is unusable because the
-# homepage server process is non-root (EACCES on the root:docker socket).
+# Uses the lab stack's own read-only socket proxy (socket-proxy-ro.yml); the oam
+# stack's shared proxy allows POST/start/stop for watchtower, which homepage
+# must not have. Direct docker.sock mount is unusable because the homepage
+# server process is non-root (EACCES on the root:docker socket).
 networks:
-  socket_proxy:
-    name: socket_proxy
-    external: true
+  socket_proxy_ro:
+    name: socket_proxy_ro

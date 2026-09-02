@@ -120,75 +120,131 @@
         href: https://jellyfin.lab.nobasura.org/
         description: Media server
         siteMonitor: http://media.lan:8096/health
+        server: media-docker
+        container: jellyfin
+        widget:
+          type: jellyfin
+          url: http://media.lan:8096
+          key: "{{HOMEPAGE_VAR_JELLYFIN_KEY}}"
+          enableBlocks: true
+          enableNowPlaying: true
     - Jellyseerr:
         icon: jellyseerr.png
         href: https://jellyseerr.lab.nobasura.org/
         description: Requests
         siteMonitor: http://media.lan:5055/
+        server: media-docker
+        container: jellyseerr
     - Jellystat:
         icon: jellystat.png
         href: https://jellystat.lab.nobasura.org/
         description: Playback stats
         siteMonitor: http://media.lan:3000/
+        server: media-docker
+        container: jellystat
     - Janitorr:
         icon: mdi-broom
         href: https://janitorr.lab.nobasura.org/
         description: Media cleanup
         siteMonitor: https://janitorr.lab.nobasura.org/
+        server: media-docker
+        container: janitorr
     - Stash:
         icon: stash.png
         href: https://stash.lab.nobasura.org/
         description: Media organiser
         siteMonitor: http://media.lan:9999/
+        server: media-docker
+        container: stash
     - Sonarr:
         icon: sonarr.png
         href: https://sonarr.lab.nobasura.org/
         description: TV
         siteMonitor: http://media.lan:8989/ping
+        server: media-docker
+        container: sonarr
+        widget:
+          type: sonarr
+          url: http://media.lan:8989
+          key: "{{HOMEPAGE_VAR_SONARR_KEY}}"
     - Radarr:
         icon: radarr.png
         href: https://radarr.lab.nobasura.org/
         description: Movies
         siteMonitor: http://media.lan:7878/ping
+        server: media-docker
+        container: radarr
+        widget:
+          type: radarr
+          url: http://media.lan:7878
+          key: "{{HOMEPAGE_VAR_RADARR_KEY}}"
     - Lidarr:
         icon: lidarr.png
         href: https://lidarr.lab.nobasura.org/
         description: Music
         siteMonitor: http://media.lan:8686/ping
+        server: media-docker
+        container: lidarr
+        widget:
+          type: lidarr
+          url: http://media.lan:8686
+          key: "{{HOMEPAGE_VAR_LIDARR_KEY}}"
     - Bazarr:
         icon: bazarr.png
         href: https://bazarr.lab.nobasura.org/
         description: Subtitles
         siteMonitor: http://media.lan:6767/
+        server: media-docker
+        container: bazarr
+        widget:
+          type: bazarr
+          url: http://media.lan:6767
+          key: "{{HOMEPAGE_VAR_BAZARR_KEY}}"
     - Whisparr:
         icon: whisparr.png
         href: https://whisparr.lab.nobasura.org/
         description: Adult
         siteMonitor: http://media.lan:6969/ping
+        server: media-docker
+        container: whisparr
     - Prowlarr:
         icon: prowlarr.png
         href: https://prowlarr.lab.nobasura.org/
         description: Indexers
         siteMonitor: http://media.lan:9696/ping
+        server: media-docker
+        container: prowlarr
+        widget:
+          type: prowlarr
+          url: http://media.lan:9696
+          key: "{{HOMEPAGE_VAR_PROWLARR_KEY}}"
     - Deluge:
         icon: deluge.png
         href: https://deluge.lab.nobasura.org/
         description: Torrents (via gluetun VPN)
         siteMonitor: http://media.lan:8112/
+        server: media-docker
+        container: deluge
     - SABnzbd:
         icon: sabnzbd.png
         href: https://sabnzbd.lab.nobasura.org/
         description: Usenet
         siteMonitor: http://media.lan:8084/
+        server: media-docker
+        container: sabnzbd
     - NZBGet:
         icon: nzbget.png
         href: https://nzbget.lab.nobasura.org/
         description: Usenet (secondary) — basic auth, no unauthenticated health path
+        server: media-docker
+        container: nzbget
     - Notifiarr:
         icon: notifiarr.png
         href: https://notifiarr.lab.nobasura.org/
         description: Notification relay
         siteMonitor: http://media.lan:5454/
+        server: media-docker
+        container: notifiarr
 
 - Obs VM:
     - Grafana:
@@ -196,46 +252,64 @@
         href: https://grafana.lab.nobasura.org/
         description: Dashboards + alerting
         siteMonitor: http://obs.lan:3000/api/health
+        server: obs-docker
+        container: grafana
     - Prometheus:
         icon: prometheus.png
         href: https://prometheus.lab.nobasura.org/
         description: Metrics
         siteMonitor: http://obs.lan:9090/-/healthy
+        server: obs-docker
+        container: prometheus
     - Graylog:
         icon: graylog.png
         href: https://graylog.lab.nobasura.org/
         description: Log aggregation (syslog/GELF)
         siteMonitor: http://obs.lan:9000/
+        server: obs-docker
+        container: graylog
     - InfluxDB:
         icon: influxdb.png
         href: https://influxdb.lab.nobasura.org/
         description: Time series DB
         siteMonitor: http://obs.lan:8086/health
+        server: obs-docker
+        container: influxdb2
     - Beszel:
         icon: beszel.png
         href: https://beszel.lab.nobasura.org/
         description: Host resource monitoring
         siteMonitor: http://obs.lan:8090/
+        server: obs-docker
+        container: beszel
     - Dozzle:
         icon: dozzle.png
         href: https://dozzle.lab.nobasura.org/
         description: Container logs (all VMs)
         siteMonitor: http://obs.lan:8080/
+        server: obs-docker
+        container: dozzle
     - Gotify:
         icon: gotify.png
         href: https://gotify.lab.nobasura.org/
         description: Push notifications
         siteMonitor: http://obs.lan:80/
+        server: obs-docker
+        container: gotify
     - Portainer:
         icon: portainer.png
         href: https://portainer.lab.nobasura.org/
         description: Container management (all VMs)
         siteMonitor: http://obs.lan:9900/
+        server: obs-docker
+        container: portainer
     - Uptime Kuma:
         icon: uptime-kuma.png
         href: https://uptime-kuma.lab.nobasura.org/
         description: Uptime checks
         siteMonitor: http://obs.lan:3001/
+        server: obs-docker
+        container: uptime-kuma
 
 - Gateway:
     - Pangolin:
