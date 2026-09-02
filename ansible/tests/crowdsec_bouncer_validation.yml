@@ -118,7 +118,10 @@
     success_msg: "✅ Traefik can access CrowdSec API key file"
 
 - name: Test Traefik to CrowdSec LAPI connectivity
-  shell: ssh {{ hostvars['gateway-vps']['ansible_host'] | default('gateway.nobasura.org') }} "docker exec traefik wget -q --timeout=5 --tries=1 -O - http://crowdsec:8080/v1/decisions 2>/dev/null || echo 'LAPI connection failed'"
+  # CrowdSec >=1.8.0 returns 403 for unauthenticated requests, so authenticate with the mounted bouncer key
+  shell: >-
+    ssh {{ hostvars['gateway-vps']['ansible_host'] | default('gateway.nobasura.org') }}
+    "docker exec traefik sh -c 'wget -q --timeout=5 --tries=1 --header=\"X-Api-Key: \$(cat /secrets/crowdsec-api-key)\" -O - http://crowdsec:8080/v1/decisions' 2>/dev/null || echo 'LAPI connection failed'"
   register: traefik_lapi_connectivity
   changed_when: false
 
