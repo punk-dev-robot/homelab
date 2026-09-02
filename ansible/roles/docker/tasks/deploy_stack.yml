@@ -72,6 +72,7 @@
   no_log: true
   when:
     - cur_stack == 'lab'
+    - docker_homepage_widget_keys_raw is succeeded
     - docker_homepage_widget_keys_raw.stdout is defined
     - docker_homepage_widget_keys_raw.stdout | length > 0
 
