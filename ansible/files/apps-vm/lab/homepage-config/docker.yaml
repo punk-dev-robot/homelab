@@ -2,7 +2,7 @@
 # https://gethomepage.dev/configs/docker/
 # apps-vm: via the lab stack's own read-only socket-proxy-ro (no POST — the oam
 #   proxy allows start/stop for watchtower and must not be homepage-reachable).
-# media/obs VMs: read-only socket proxies published on :2376 (oam stacks).
+# media/obs VMs: read-only socket proxies published on media:2376 / obs:2377 (oam stacks).
 apps-docker:
   host: socket-proxy-ro
   port: 2375

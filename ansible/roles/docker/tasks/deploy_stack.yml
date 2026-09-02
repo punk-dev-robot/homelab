@@ -20,6 +20,9 @@
 # Homepage widget API keys are read at deploy time from the services' own live
 # configs on media-vm — the service config is the single source of truth, keys
 # survive rotation, and nothing secret lands in git or 1Password.
+# NOTE: the jellyfin 'Homepage' API key is manual state — created once via
+# `POST /Auth/Keys?App=Homepage` (KUB-61); a jellyfin rebuild removes it and
+# the widget silently degrades until it is recreated.
 - name: Collect homepage widget API keys from live service configs (lab)
   become: true
   delegate_to: media-vm
@@ -58,6 +61,8 @@
       print(json.dumps({k: v for k, v in out.items() if v}))
   register: docker_homepage_widget_keys_raw
   changed_when: false
+  check_mode: false
+  ignore_errors: true # media-vm down must not block the lab deploy — widgets degrade, ${VAR:-} defaults cover it
   no_log: true
   when: cur_stack == 'lab'
 
@@ -65,7 +70,10 @@
   set_fact:
     docker_homepage_widget_env: "{{ docker_homepage_widget_keys_raw.stdout | from_json }}"
   no_log: true
-  when: cur_stack == 'lab'
+  when:
+    - cur_stack == 'lab'
+    - docker_homepage_widget_keys_raw.stdout is defined
+    - docker_homepage_widget_keys_raw.stdout | length > 0
 
 - name: Generate env file {{ cur_stack }}
   vars:
@@ -74,7 +82,7 @@
         docker_env_vars[cur_stack] | default({}),
         env_vars.common | default({}),
         env_vars[cur_stack] | default({}),
-        docker_homepage_widget_env | default({})
+        docker_homepage_widget_env | default({}) if cur_stack == 'lab' else {}
       ) }}
   copy:
     content: |
