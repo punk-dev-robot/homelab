@@ -95,6 +95,7 @@
           failed: 0
           critical_failures: []
         start_time: "{{ ansible_date_time.epoch }}"
+      tags: ["always"]
 
     - name: Test direct VM access (.lan addresses)
       include_tasks: ../homelab/test_direct_access.yml

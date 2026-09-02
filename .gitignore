@@ -2,3 +2,6 @@
 .claude/
 temp/
 .planning/
+
+# repowise API keys (local)
+.repowise/.env
