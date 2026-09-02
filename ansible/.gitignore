@@ -17,4 +17,4 @@ test_*.yml
 
 # Log files
 *.log
-deployment_*.txt
+deployment_*.txt!tests/**/test_*.yml
