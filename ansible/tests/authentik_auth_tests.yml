@@ -44,10 +44,10 @@
       category: "security"
       description: "Authentik admin interface authentication requirement"
       validation_logic: >-
-        (http_result.status == 302 and 
+        (http_result.status == 302 and
          (http_result.location | default('') | regex_search('login|auth|sign-in'))) or
-        (http_result.status == 200 and 
-         ('login' in (http_result.content | default('')) or 
+        (http_result.status == 200 and
+         ('login' in (http_result.content | default('')) or
           'authentication' in (http_result.content | default(''))))
   tags: ["security", "critical"]
 
@@ -56,13 +56,13 @@
   vars:
     test_config:
       name: "authentik_api_health"
-      url: "https://auth.{{ organization_domain }}/api/v3/root/config/"
+      url: "https://auth.{{ organization_domain }}/api/v3/core/users/"
       method: GET
       expected_statuses: [401, 403]
       timeout: "{{ test_standards.timeout }}"
       critical: true
       category: "security"
-      description: "Authentik API requires authentication"
+      description: "Authentik API requires authentication (core/users; root/config is public by design)"
   tags: ["security", "api"]
 
 - name: Authentik OpenID Configuration Endpoint
@@ -70,7 +70,7 @@
   vars:
     test_config:
       name: "authentik_oidc_config"
-      url: "https://auth.{{ organization_domain }}/application/o/pangolin/.well-known/openid_configuration"
+      url: "https://auth.{{ organization_domain }}/application/o/pangolin/.well-known/openid-configuration"
       method: GET
       expected_statuses: [200]
       timeout: "{{ test_standards.timeout }}"
@@ -78,28 +78,25 @@
       category: "functionality"
       description: "Authentik OpenID Connect configuration endpoint"
       validation_logic: >-
-        (http_result.status == 200 and 
+        (http_result.status == 200 and
          'issuer' in (http_result.content | default('')) and
          'authorization_endpoint' in (http_result.content | default('')))
   tags: ["functionality", "critical", "oidc"]
 
-- name: Authentik Application Integration - Pangolin OAuth
+- name: Authentik OAuth Authorize Endpoint
   include_tasks: common/test_base.yml
   vars:
     test_config:
-      name: "authentik_pangolin_oauth"
-      url: "https://auth.{{ organization_domain }}/application/o/authorize/pangolin/"
+      name: "authentik_oauth_authorize"
+      url: "https://auth.{{ organization_domain }}/application/o/authorize/?client_id=test-invalid&response_type=code&redirect_uri=https://invalid.example"
       method: GET
-      expected_statuses: [302, 400]
+      expected_statuses: [400]  # invalid client -> 400; bare path 404s in authentik 2026.x
       timeout: "{{ test_standards.timeout }}"
       critical: true
       category: "functionality"
-      description: "Authentik OAuth authorization endpoint for Pangolin"
+      description: "Authentik OAuth authorize endpoint alive (rejects invalid client with 400)"
       validation_logic: >-
-        (http_result.status == 302 and 
-         (http_result.location | default('') | regex_search('login|auth|sign-in'))) or
-        (http_result.status == 400 and 
-         'redirect_uri' in (http_result.content | default('')) or
+        (http_result.status == 400 and
          'client_id' in (http_result.content | default('')))
   tags: ["functionality", "integration", "oauth"]
 

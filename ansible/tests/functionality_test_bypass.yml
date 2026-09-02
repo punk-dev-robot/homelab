@@ -15,12 +15,13 @@
       headers: "{{ {pangolin_auth_bypass_header: bypass_key} }}"
       timeout: "{{ test_categories.functionality.timeout }}"
       critical: "{{ test_categories.functionality.critical }}"
-      expected_statuses: [200, 307]  # 200=direct access, 307=jellyseerr app login
+      expected_statuses: [200, 302, 307]  # 200=direct access, 302/307=app's own login (arr/jellyseerr)
       validation_logic: "{{
         http_result.status is defined and
-        http_result.status in [200, 307]
+        http_result.status in [200, 302, 307] and
+        ('pangolin.' ~ organization_domain) not in (http_result.location | default(''))
       }}"
-    test_expected: "Bypass works correctly (200=direct access, 307=app login)"
+    test_expected: "Bypass works (200=direct, 302/307=app's own login, not pangolin)"
     test_details: "Service: {{ target_service.name }}, Internal: {{ target_service.internal_url }}"
 
 - name: Record bypass functionality result

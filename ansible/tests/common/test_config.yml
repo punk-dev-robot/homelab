@@ -30,4 +30,4 @@ test_patterns:
 
 test_services:
   auth_bypass: "{{ (pangolin_auth_bypass_services | map(attribute='name') | list)[:3] }}"
-  sso_protected: ["grafana", "openwebui", "jellyfin"]
+  sso_protected: ["grafana", "openwebui", "homepage"]  # jellyfin removed: public by design (302 -> /web/)
