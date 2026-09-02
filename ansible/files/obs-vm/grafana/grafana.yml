@@ -8,10 +8,13 @@ services:
     environment:
       - GF_ANALYTICS_REPORTING_ENABLED=false
       - GF_METRICS_ENABLED=false
+      - GOTIFY_ALERT_TOKEN=${GOTIFY_ALERT_TOKEN} # alert contact point (KUB-54)
     ports:
       - "3000:3000"
     volumes:
       - grafana-data:/var/lib/grafana
+      - ./provisioning/datasources:/etc/grafana/provisioning/datasources
+      - ./provisioning/alerting:/etc/grafana/provisioning/alerting
     labels:
       - com.centurylinklabs.watchtower.monitor-only
 
