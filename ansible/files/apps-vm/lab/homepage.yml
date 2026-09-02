@@ -7,8 +7,16 @@ services:
     container_name: homepage
     ports:
       - 3001:3000
+    networks:
+      - socket_proxy
     volumes:
       - ./homepage-config/:/app/config
-      - /var/run/docker.sock:/var/run/docker.sock:ro # Keep direct socket access for now
     environment:
       HOMEPAGE_ALLOWED_HOSTS: homepage.lab.nobasura.org,apps.lan:3001
+
+# socket-proxy lives in the oam stack; direct docker.sock mount is unusable because the
+# homepage server process is non-root (EACCES on the root:docker socket).
+networks:
+  socket_proxy:
+    name: socket_proxy
+    external: true

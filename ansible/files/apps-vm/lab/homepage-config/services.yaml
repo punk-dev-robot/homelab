@@ -1,18 +1,291 @@
 ---
-# For configuration options and examples, please see:
 # https://gethomepage.dev/configs/services/
+#
+# Monitoring rules for this estate (verified from inside the homepage container):
+#   * .lab.nobasura.org certs are trusted    -> siteMonitor OK
+#   * plain http on <vm>.lan:<port> works    -> preferred siteMonitor (bypasses Caddy)
+#   * Proxmox/PBS/TrueNAS/OPNsense use self-signed certs and VLAN 101 TCP is
+#     firewalled off from the LAB VLAN      -> ICMP `ping` instead of siteMonitor
+#   * docker status only for apps-vm (local socket); media/obs need remote docker (pass 2)
 
-- My First Group:
-    - My First Service:
-        href: http://localhost/
-        description: Homepage is awesome
+- Infra:
+    - px-cpu:
+        icon: proxmox.png
+        href: https://10.10.101.11:8006/
+        description: Proxmox node — opnsense2, docker-obs, docker-apps
+        ping: 10.10.101.11
+    - px-net:
+        icon: proxmox.png
+        href: https://10.10.101.12:8006/
+        description: Proxmox node — opnsense (primary)
+        ping: 10.10.101.12
+    - px-nas:
+        icon: proxmox.png
+        href: https://10.10.101.13:8006/
+        description: Proxmox node — truenas-scale, docker-media
+        ping: 10.10.101.13
+    - PBS:
+        icon: proxmox-backup-server.png
+        href: https://10.10.10.34:8007/
+        description: Backup server on zima (kbs)
+        ping: 10.10.10.34
+    - TrueNAS:
+        icon: truenas-scale.png
+        href: https://10.10.10.31/
+        description: NAS — /mnt/hddpool/data over NFS
+        ping: 10.10.10.31
+    - OPNsense 1:
+        icon: opnsense.png
+        href: https://10.10.101.2/
+        description: Primary firewall (CARP master) on px-net
+        ping: 10.10.101.2
+    - OPNsense 2:
+        icon: opnsense.png
+        href: https://10.10.101.3/
+        description: Secondary firewall (CARP backup) on px-cpu
+        ping: 10.10.101.3
+    - Gateway VPS:
+        icon: oracle.png
+        href: https://pangolin.nobasura.org/
+        description: Public ingress — Traefik + Pangolin + CrowdSec
+        siteMonitor: https://pangolin.nobasura.org/
 
-- My Second Group:
-    - My Second Service:
-        href: http://localhost/
-        description: Homepage is the best
+- Apps VM:
+    - LiteLLM:
+        icon: litellm.png
+        href: https://litellm.lab.nobasura.org/
+        description: LLM proxy / gateway
+        siteMonitor: http://apps.lan:4000/health/liveliness
+        server: apps-docker
+        container: litellm
+    - Open WebUI:
+        icon: open-webui.png
+        href: https://openwebui.lab.nobasura.org/
+        description: Chat UI over LiteLLM
+        siteMonitor: http://apps.lan:3000/
+        server: apps-docker
+        container: open_webui
+    - Karakeep:
+        icon: karakeep.png
+        href: https://karakeep.lab.nobasura.org/
+        description: Bookmarks / read-later (SSO)
+        siteMonitor: http://apps.lan:3004/
+        server: apps-docker
+        container: karakeep
+    - Atuin:
+        icon: atuin.png
+        href: https://atuin.lab.nobasura.org/
+        description: Shell history sync
+        siteMonitor: http://apps.lan:12321/
+        server: apps-docker
+        container: atuin
+    - Enclosed:
+        icon: mdi-lock-outline
+        href: https://enclosed.lab.nobasura.org/
+        description: Encrypted note sharing
+        siteMonitor: http://apps.lan:8787/
+        server: apps-docker
+        container: enclosed
+    - Firecrawl:
+        icon: mdi-fire
+        href: https://firecrawl.lab.nobasura.org/
+        description: Scrape / crawl API
+        siteMonitor: http://apps.lan:3002/
+        server: apps-docker
+        container: firecrawl_api
+    - IT Tools:
+        icon: it-tools.png
+        href: https://it-tools.lab.nobasura.org/
+        description: Dev/ops utility belt
+        siteMonitor: http://apps.lan:8080/
+        server: apps-docker
+        container: it-tools
+    - Neo4j:
+        icon: neo4j.png
+        href: http://apps.lan:7474/browser/
+        description: Graph DB browser (no Caddy route — .lab returns 502)
+        siteMonitor: http://apps.lan:7474/
+        server: apps-docker
+        container: neo4j
+    - Homepage:
+        icon: homepage.png
+        href: https://homepage.lab.nobasura.org/
+        description: This dashboard
+        server: apps-docker
+        container: homepage
 
-- My Third Group:
-    - My Third Service:
-        href: http://localhost/
-        description: Homepage is 😎
+- Media VM:
+    - Jellyfin:
+        icon: jellyfin.png
+        href: https://jellyfin.lab.nobasura.org/
+        description: Media server
+        siteMonitor: http://media.lan:8096/health
+    - Jellyseerr:
+        icon: jellyseerr.png
+        href: https://jellyseerr.lab.nobasura.org/
+        description: Requests
+        siteMonitor: http://media.lan:5055/
+    - Jellystat:
+        icon: jellystat.png
+        href: https://jellystat.lab.nobasura.org/
+        description: Playback stats
+        siteMonitor: http://media.lan:3000/
+    - Janitorr:
+        icon: mdi-broom
+        href: https://janitorr.lab.nobasura.org/
+        description: Media cleanup
+        siteMonitor: https://janitorr.lab.nobasura.org/
+    - Stash:
+        icon: stash.png
+        href: https://stash.lab.nobasura.org/
+        description: Media organiser
+        siteMonitor: http://media.lan:9999/
+    - Sonarr:
+        icon: sonarr.png
+        href: https://sonarr.lab.nobasura.org/
+        description: TV
+        siteMonitor: http://media.lan:8989/ping
+    - Radarr:
+        icon: radarr.png
+        href: https://radarr.lab.nobasura.org/
+        description: Movies
+        siteMonitor: http://media.lan:7878/ping
+    - Lidarr:
+        icon: lidarr.png
+        href: https://lidarr.lab.nobasura.org/
+        description: Music
+        siteMonitor: http://media.lan:8686/ping
+    - Bazarr:
+        icon: bazarr.png
+        href: https://bazarr.lab.nobasura.org/
+        description: Subtitles
+        siteMonitor: http://media.lan:6767/
+    - Whisparr:
+        icon: whisparr.png
+        href: https://whisparr.lab.nobasura.org/
+        description: Adult
+        siteMonitor: http://media.lan:6969/ping
+    - Prowlarr:
+        icon: prowlarr.png
+        href: https://prowlarr.lab.nobasura.org/
+        description: Indexers
+        siteMonitor: http://media.lan:9696/ping
+    - Deluge:
+        icon: deluge.png
+        href: https://deluge.lab.nobasura.org/
+        description: Torrents (via gluetun VPN)
+        siteMonitor: http://media.lan:8112/
+    - SABnzbd:
+        icon: sabnzbd.png
+        href: https://sabnzbd.lab.nobasura.org/
+        description: Usenet
+        siteMonitor: http://media.lan:8084/
+    - NZBGet:
+        icon: nzbget.png
+        href: https://nzbget.lab.nobasura.org/
+        description: Usenet (secondary) — basic auth, no unauthenticated health path
+    - Notifiarr:
+        icon: notifiarr.png
+        href: https://notifiarr.lab.nobasura.org/
+        description: Notification relay
+        siteMonitor: http://media.lan:5454/
+
+- Obs VM:
+    - Grafana:
+        icon: grafana.png
+        href: https://grafana.lab.nobasura.org/
+        description: Dashboards + alerting
+        siteMonitor: http://obs.lan:3000/api/health
+    - Prometheus:
+        icon: prometheus.png
+        href: https://prometheus.lab.nobasura.org/
+        description: Metrics
+        siteMonitor: http://obs.lan:9090/-/healthy
+    - Graylog:
+        icon: graylog.png
+        href: https://graylog.lab.nobasura.org/
+        description: Log aggregation (syslog/GELF)
+        siteMonitor: http://obs.lan:9000/
+    - InfluxDB:
+        icon: influxdb.png
+        href: https://influxdb.lab.nobasura.org/
+        description: Time series DB
+        siteMonitor: http://obs.lan:8086/health
+    - Beszel:
+        icon: beszel.png
+        href: https://beszel.lab.nobasura.org/
+        description: Host resource monitoring
+        siteMonitor: http://obs.lan:8090/
+    - Dozzle:
+        icon: dozzle.png
+        href: https://dozzle.lab.nobasura.org/
+        description: Container logs (all VMs)
+        siteMonitor: http://obs.lan:8080/
+    - Gotify:
+        icon: gotify.png
+        href: https://gotify.lab.nobasura.org/
+        description: Push notifications
+        siteMonitor: http://obs.lan:80/
+    - Portainer:
+        icon: portainer.png
+        href: https://portainer.lab.nobasura.org/
+        description: Container management (all VMs)
+        siteMonitor: http://obs.lan:9900/
+    - Uptime Kuma:
+        icon: uptime-kuma.png
+        href: https://uptime-kuma.lab.nobasura.org/
+        description: Uptime checks
+        siteMonitor: http://obs.lan:3001/
+
+- Gateway:
+    - Pangolin:
+        icon: mdi-shield-lock
+        href: https://pangolin.nobasura.org/
+        description: Tunnel/ingress control plane
+        siteMonitor: https://pangolin.nobasura.org/
+    - Authentik:
+        icon: authentik.png
+        href: https://auth.nobasura.org/
+        description: SSO / identity provider
+        siteMonitor: https://auth.nobasura.org/-/health/live/
+    - Pangolin API:
+        icon: mdi-api
+        href: https://api.nobasura.org/
+        description: Pangolin API (Traefik HTTP provider)
+
+- Ops:
+    - Socket Proxy:
+        icon: docker.png
+        description: apps-vm docker API proxy
+        server: apps-docker
+        container: socket-proxy
+    - Watchtower:
+        icon: watchtower.png
+        description: apps-vm image updates
+        server: apps-docker
+        container: watchtower
+    - Docker GC:
+        icon: docker.png
+        description: apps-vm image/volume pruning
+        server: apps-docker
+        container: docker-gc
+    - Deunhealth:
+        icon: docker.png
+        description: apps-vm unhealthy-container restarts
+        server: apps-docker
+        container: deunhealth
+    - Dozzle Agent:
+        icon: dozzle.png
+        description: apps-vm log agent
+        server: apps-docker
+        container: dozzle-agent
+    - Portainer Agent:
+        icon: portainer.png
+        description: apps-vm portainer agent
+        server: apps-docker
+        container: portainer-agent
+    - Newt:
+        icon: mdi-tunnel
+        description: apps-vm Pangolin tunnel client
+        server: apps-docker
+        container: newt

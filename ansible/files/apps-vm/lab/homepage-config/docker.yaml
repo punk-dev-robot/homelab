@@ -1,10 +1,7 @@
 ---
-# For configuration options and examples, please see:
 # https://gethomepage.dev/configs/docker/
-
-# my-docker:
-#   host: 127.0.0.1
-#   port: 2375
-
-# my-docker:
-#   socket: /var/run/docker.sock
+# apps-vm only: via the oam stack's socket-proxy (see lab/homepage.yml — direct socket mount is EACCES for homepage's non-root server).
+# Remote VMs (media/obs) would need docker TCP exposure — pass 2.
+apps-docker:
+  host: socket-proxy
+  port: 2375

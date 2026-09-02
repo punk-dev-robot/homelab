@@ -1,18 +1,21 @@
 ---
-# For configuration options and examples, please see:
 # https://gethomepage.dev/configs/bookmarks
 
-- Developer:
-    - Github:
+- Ops:
+    - Grafana:
+        - abbr: GR
+          href: https://grafana.lab.nobasura.org/
+    - Dozzle:
+        - abbr: DZ
+          href: https://dozzle.lab.nobasura.org/
+    - Uptime Kuma:
+        - abbr: UK
+          href: https://uptime-kuma.lab.nobasura.org/
+
+- Dev:
+    - homelab repo:
         - abbr: GH
-          href: https://github.com/
-
-- Social:
-    - Reddit:
-        - abbr: RE
-          href: https://reddit.com/
-
-- Entertainment:
-    - YouTube:
-        - abbr: YT
-          href: https://youtube.com/
+          href: https://github.com/punk-dev-robot/homelab
+    - Linear:
+        - abbr: LI
+          href: https://linear.app/
