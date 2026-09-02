@@ -168,9 +168,10 @@ proxmox:
   hosts:
     px-cpu:
       ansible_host: 10.10.101.11
+      pve_zfs_options: zfs_arc_max=10096738304 # 9.4G, matches live (KUB-51)
     px-net:
       ansible_host: 10.10.101.12
-      pve_zfs_options: zfs_arc_max=10095689728
+      pve_zfs_options: zfs_arc_max=4294967296 # 4G per KUB-43 Talos sizing (KUB-51)
     px-nas:
       ansible_host: 10.10.101.13
       pve_zfs_options: zfs_arc_max=3338665984
