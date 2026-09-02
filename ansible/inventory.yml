@@ -19,7 +19,7 @@ docker:
   hosts:
     apps-vm:
       ansible_host: apps.lan
-      stacks: [oam, ai, tools, dbs]
+      stacks: [oam, ai, tools, dbs, lab]
       # Pangolin configuration - references site definition
       pangolin_site_ref: apps-vm
       pangolin_newt_enabled: true

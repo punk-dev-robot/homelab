@@ -6,6 +6,7 @@ services:
       file: ../common.yml
       service: socket-base
     environment:
+      DOCKER_API_VERSION: "1.44" # watchtower 1.7.1 client defaults to 1.25; daemon minimum is 1.44
       # WATCHTOWER_RUN_ONCE: false # or
       # WATCHTOWER_POLL_INTERVAL: 21600
       WATCHTOWER_SCHEDULE: "0 0 4 * * *"
