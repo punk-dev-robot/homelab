@@ -3,7 +3,7 @@ services:
     extends:
       file: ../common.yml
       service: base
-    image: gotify/server
+    image: gotify/server:2.8.0
     container_name: gotify
     volumes:
       - gotify-data:/app/data

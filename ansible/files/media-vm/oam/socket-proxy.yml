@@ -1,7 +1,7 @@
 services:
   # Docker Socket Proxy - Security Enchanced Proxy for Docker Socket
   socket-proxy:
-    image: linuxserver/socket-proxy:latest
+    image: linuxserver/socket-proxy:3.2.9-r0-ls63
     container_name: socket-proxy
     extends:
       file: ../common.yml

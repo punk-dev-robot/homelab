@@ -3,7 +3,7 @@ services:
     extends:
       file: ../common.yml
       service: base
-    image: grafana/loki
+    image: grafana/loki:3.6.3
     container_name: loki
     ports:
       - 3100:3100
@@ -17,7 +17,7 @@ services:
     extends:
       file: ../common.yml
       service: base
-    image: grafana/promtail:latest
+    image: grafana/promtail:3.6.3
     container_name: promtail
     volumes:
       - /var/log:/var/log

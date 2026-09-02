@@ -13,7 +13,7 @@ services:
       - jellystat-data:/var/lib/postgresql/data
 
   jellystat:
-    image: cyfershepard/jellystat:latest
+    image: cyfershepard/jellystat:1.1.6
     container_name: jellystat
     extends:
       file: ../common.yml

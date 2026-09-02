@@ -3,7 +3,7 @@ services:
     extends:
       file: ../common.yml
       service: base
-    image: linuxserver/lidarr:latest
+    image: linuxserver/lidarr:3.1.0.4875-ls12
     container_name: lidarr
     ports:
       - "8686:8686"

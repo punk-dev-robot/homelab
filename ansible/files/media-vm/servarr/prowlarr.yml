@@ -3,7 +3,7 @@ services:
     extends:
       file: ../common.yml
       service: base
-    image: linuxserver/prowlarr
+    image: linuxserver/prowlarr:2.3.0.5236-ls133
     container_name: prowlarr
     ports:
       - "9696:9696"

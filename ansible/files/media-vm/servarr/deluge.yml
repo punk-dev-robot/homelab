@@ -3,7 +3,7 @@ services:
     extends:
       file: ../common.yml
       service: base # traefik handled by vpn
-    image: linuxserver/deluge:latest
+    image: linuxserver/deluge:2.2.0-r1-ls356
     container_name: deluge
     environment:
       DELUGE_LOGLEVEL: warn #optional

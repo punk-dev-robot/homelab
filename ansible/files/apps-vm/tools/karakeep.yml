@@ -3,7 +3,7 @@ services:
     extends:
       file: ../common.yml
       service: base
-    image: ghcr.io/karakeep-app/karakeep:${KARAKEEP_VERSION:-release}
+    image: ghcr.io/karakeep-app/karakeep:${KARAKEEP_VERSION:-0.30.0}
     container_name: karakeep
     ports:
       - "3004:3000"

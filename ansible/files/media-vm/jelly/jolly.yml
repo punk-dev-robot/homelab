@@ -1,6 +1,6 @@
 services:
   jolly:
-    image: lscr.io/linuxserver/jellyfin:latest
+    image: lscr.io/linuxserver/jellyfin:10.11.3ubu2404-ls9
     container_name: jolly
     extends:
       file: ../common.yml

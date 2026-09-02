@@ -3,7 +3,7 @@ services:
     extends:
       file: ../common.yml
       service: base
-    image: ghcr.io/recyclarr/recyclarr:latest
+    image: ghcr.io/recyclarr/recyclarr:7.5.0
     container_name: recyclarr
     user: $PUID:$PGID
     volumes:

@@ -3,7 +3,7 @@ services:
     extends:
       file: ../common.yml
       service: base
-    image: linuxserver/sabnzbd:latest
+    image: linuxserver/sabnzbd:4.5.5-ls238
     container_name: sabnzbd
     ports:
       - 8084:8080

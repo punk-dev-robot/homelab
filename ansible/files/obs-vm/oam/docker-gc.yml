@@ -1,7 +1,7 @@
 services:
   # Docker-GC - Automatic Docker Garbage Collection
   docker-gc:
-    image: clockworksoul/docker-gc-cron:latest
+    image: clockworksoul/docker-gc-cron:20240504
     container_name: docker-gc
     extends:
       file: ../common.yml

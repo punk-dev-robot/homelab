@@ -1,6 +1,6 @@
 services:
   radarr:
-    image: linuxserver/radarr
+    image: linuxserver/radarr:6.0.4.10291-ls288
     container_name: radarr
     extends:
       file: ../common.yml

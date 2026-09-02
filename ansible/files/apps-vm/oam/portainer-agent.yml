@@ -1,6 +1,6 @@
 services:
   portainer-agent:
-    image: portainer/agent:latest
+    image: portainer/agent:2.33.5
     container_name: portainer-agent
     extends:
       file: ../common.yml

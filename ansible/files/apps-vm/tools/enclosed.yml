@@ -3,7 +3,7 @@ services:
     extends:
       file: ../common.yml
       service: base
-    image: corentinth/enclosed:latest
+    image: corentinth/enclosed:1.16.0
     container_name: enclosed
     ports:
       - "8787:8787"

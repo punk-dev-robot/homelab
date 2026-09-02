@@ -3,7 +3,7 @@ services:
     extends:
       file: ../common.yml
       service: base
-    image: qmcgaw/gluetun
+    image: qmcgaw/gluetun@sha256:6a59b7901068b7c50ef52200152db3afd4b9cebc13e272b2169de4cdcad91006
     cap_add:
       - NET_ADMIN
     devices:

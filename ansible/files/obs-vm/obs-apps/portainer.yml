@@ -4,7 +4,7 @@ volumes:
 
 services:
   portainer:
-    image: portainer/portainer-ee:latest
+    image: portainer/portainer-ee:2.33.6
     container_name: portainer
     extends:
       file: ../common.yml

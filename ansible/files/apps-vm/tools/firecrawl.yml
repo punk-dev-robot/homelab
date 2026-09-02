@@ -18,7 +18,7 @@ services:
     extends:
       file: ../common.yml
       service: base
-    image: ghcr.io/firecrawl/firecrawl:latest
+    image: ghcr.io/firecrawl/firecrawl@sha256:fc457d64b1718f7d1a1669682eb6b23e8fd9eaccb2afdd3f4f0ceb4e7427589d
     container_name: firecrawl_api
     command: ["node", "dist/src/harness.js", "--start-docker"]
     ports:
@@ -66,7 +66,7 @@ services:
     extends:
       file: ../common.yml
       service: base
-    image: ghcr.io/firecrawl/playwright-service:latest
+    image: ghcr.io/firecrawl/playwright-service@sha256:5ad2d42445fb4efb29b2c1e062c0a8fe8aa47795f80add0a458e95458af56544
     container_name: firecrawl_playwright
     environment:
       PORT: 3000
@@ -97,7 +97,7 @@ services:
     extends:
       file: ../common.yml
       service: base
-    image: ghcr.io/firecrawl/nuq-postgres:latest
+    image: ghcr.io/firecrawl/nuq-postgres@sha256:8565e5f46000085c16d247a4354c41e2439dbcf1640f7dd6e6406c0b18c31732
     container_name: firecrawl_nuq_postgres
     environment:
       POSTGRES_USER: firecrawl

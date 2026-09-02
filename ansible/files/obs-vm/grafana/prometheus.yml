@@ -4,7 +4,7 @@ services:
       file: ../common.yml
       service: base
     container_name: prometheus
-    image: prom/prometheus
+    image: prom/prometheus:v3.9.1
     ports:
       - 9090:9090
     volumes:
@@ -17,7 +17,7 @@ services:
     extends:
       file: ../common.yml
       service: base
-    image: prom/node-exporter:latest
+    image: prom/node-exporter:v1.10.2
     container_name: node_exporter
     expose:
       - 9100
@@ -26,7 +26,7 @@ services:
     extends:
       file: ../common.yml
       service: base
-    image: gcr.io/cadvisor/cadvisor:latest
+    image: gcr.io/cadvisor/cadvisor:v0.55.1
     container_name: cadvisor
     volumes:
       - /:/rootfs:ro
@@ -41,7 +41,7 @@ services:
     extends:
       file: ../common.yml
       service: base
-    image: ghcr.io/natrontech/pbs-exporter:latest
+    image: ghcr.io/natrontech/pbs-exporter:v0.8.0
     container_name: pbs-exporter
     user: "65534"
     ports:
@@ -58,7 +58,7 @@ services:
     extends:
       file: ../common.yml
       service: base
-    image: ekofr/pihole-exporter:latest
+    image: ekofr/pihole-exporter@sha256:36dab68a7e4b2750802e2326d9340201dc498ac429cbd89cdfb45cbab3fef081
     container_name: pihole-exporter
     ports:
       - 9617:9617

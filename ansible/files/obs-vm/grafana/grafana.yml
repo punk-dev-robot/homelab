@@ -3,7 +3,7 @@ services:
     extends:
       file: ../common.yml
       service: base
-    image: grafana/grafana-enterprise
+    image: grafana/grafana-enterprise:12.3.1
     container_name: grafana
     environment:
       - GF_ANALYTICS_REPORTING_ENABLED=false

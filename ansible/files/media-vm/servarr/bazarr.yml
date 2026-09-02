@@ -1,6 +1,6 @@
 services:
   bazarr:
-    image: linuxserver/bazarr
+    image: linuxserver/bazarr:v1.5.3-ls325
     container_name: bazarr
     extends:
       file: ../common.yml

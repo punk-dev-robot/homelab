@@ -3,7 +3,7 @@ services:
     extends:
       file: ../common.yml
       service: base
-    image: louislam/uptime-kuma
+    image: louislam/uptime-kuma:1.23.17-debian
     container_name: uptime-kuma
     volumes:
       - uptime-kuma-data:/app/data

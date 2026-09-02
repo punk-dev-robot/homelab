@@ -5,7 +5,7 @@ services:
     extends:
       file: ../common.yml
       service: base
-    image: stashapp/stash:latest
+    image: stashapp/stash:v0.29.3
     container_name: stash
     ## the container's port must be the same with the STASH_PORT in the environment section
     ports:

@@ -3,7 +3,7 @@ services:
     extends:
       file: ../common.yml
       service: base
-    image: linuxserver/nzbget:latest
+    image: linuxserver/nzbget:v25.4-ls222
     container_name: nzbget
     ports:
       - 6789:6789
